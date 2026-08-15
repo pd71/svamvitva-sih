@@ -1,0 +1,57 @@
+import os
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+
+from app.database.db import Base, engine, SessionLocal
+from app.api.endpoints import router as api_router
+from app.sample_data.generator import generate_sample_village_orthophoto
+from app.database.models import Analysis
+
+# Create database tables
+Base.metadata.create_all(bind=engine)
+
+app = FastAPI(
+    title="SVAMITVA AI Feature Extraction API",
+    description="Backend API for Drone Orthophoto Feature Extraction, Multi-Class Segmentation, Roof Classification, GIS Analytics & Human Review",
+    version="1.0.0"
+)
+
+# Enable CORS for Next.js / Vite frontend
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Include API endpoints
+app.include_router(api_router)
+
+# Serve uploaded static media files
+UPLOAD_DIR = os.path.abspath("./uploaded_images")
+os.makedirs(UPLOAD_DIR, exist_ok=True)
+app.mount("/static", StaticFiles(directory=UPLOAD_DIR), name="static")
+
+@app.on_event("startup")
+def startup_event():
+    """
+    Generate sample village orthophoto on startup to ensure instant zero-setup demo experience.
+    """
+    sample_file = os.path.join(UPLOAD_DIR, "demo_village.png")
+    generate_sample_village_orthophoto(sample_file)
+
+@app.get("/")
+def root():
+    return {
+        "service": "SVAMITVA AI Feature Extraction Platform Backend",
+        "status": "online",
+        "team": "Nerdvana",
+        "problem_id": "DJS_26_SW_08",
+        "docs_url": "/docs"
+    }
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=True)

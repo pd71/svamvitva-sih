@@ -1,0 +1,53 @@
+@import 'leaflet/dist/leaflet.css';
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #0b1120;
+  --foreground: #f8fafc;
+}
+
+body {
+  color: var(--foreground);
+  background: var(--background);
+  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  overflow-x: hidden;
+}
+
+/* Custom Scrollbar for GIS Control Room */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #0b1120;
+}
+::-webkit-scrollbar-thumb {
+  background: #2a3854;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #0ea5e9;
+}
+
+.gis-card {
+  background: #161f33;
+  border: 1px solid #2a3854;
+  border-radius: 6px;
+}
+
+.gis-card-hover {
+  transition: all 0.2s ease-in-out;
+}
+.gis-card-hover:hover {
+  border-color: #0ea5e9;
+  box-shadow: 0 4px 20px -2px rgba(14, 165, 233, 0.15);
+}
+
+.leaflet-container {
+  width: 100%;
+  height: 100%;
+  background: #0b1120 !important;
+  border-radius: 6px;
+}
