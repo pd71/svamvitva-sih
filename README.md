@@ -21,8 +21,8 @@ $$\text{Official SVAMITVA TIF} \rightarrow \text{Tiling} \rightarrow \text{PyTor
 | Layer | Hosting Provider | Resource / Repository |
 | :--- | :--- | :--- |
 | **Model Weight Hub** | [Hugging Face](https://huggingface.co/holypreet/svamitva-unet-weights) | [`holypreet/svamitva-unet-weights`](https://huggingface.co/holypreet/svamitva-unet-weights) |
-| **Backend API** | [Render.com](https://render.com) | Python FastAPI + PyTorch Inference Engine |
-| **Frontend UI** | [Vercel](https://vercel.com) | Next.js 14 + Tailwind CSS + Leaflet GIS |
+| **Full Stack App** | [Vercel](https://vercel.com) | Next.js 14 + Python FastAPI Serverless Functions (`/api/*`) |
+
 
 ---
 

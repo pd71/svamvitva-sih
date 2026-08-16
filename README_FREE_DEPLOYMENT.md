@@ -1,78 +1,55 @@
-# 🌐 100% Free 24/7 Deployment Guide
+# 🌐 100% Free 24/7 Deployment Guide (Vercel-Only Architecture)
 ## SVAMITVA AI Feature Extraction Platform
 
-This guide shows you how to deploy the **entire SVAMITVA AI Platform** completely for **FREE (0 USD / 24/7 online)** using:
+This guide shows you how to deploy the **entire SVAMITVA AI Platform** completely on **[Vercel](https://vercel.com)** for **FREE (0 USD / 24/7 online)** with **ZERO external servers (No Render required)**:
+
+- **Frontend & Backend**: [Vercel](https://vercel.com) *(Next.js 14 + Python FastAPI Serverless Functions)*
 - **Model Storage**: [Hugging Face Model Hub](https://huggingface.co/holypreet/svamitva-unet-weights) (`holypreet/svamitva-unet-weights`)
-- **Backend (FastAPI)**: [Render.com](https://render.com) *(100% Free Web Service)* or [Koyeb](https://koyeb.com)
-- **Frontend (Next.js 14)**: [Vercel](https://vercel.com) *(100% Free Global CDN Hosting)*
 
 ---
 
-## 📦 Step 1: Upload Model Weights to Hugging Face Model Hub (FREE)
+## ⚡ How Vercel-Only Deployment Works
 
-1. Open PowerShell and navigate to the weights directory:
-   ```powershell
-   cd d:\drone\backend\app\ml\weights
-   ```
-
-2. Install Hugging Face CLI & Log In:
-   ```powershell
-   powershell -ExecutionPolicy ByPass -c "irm https://hf.co/cli/install.ps1 | iex"
-   hf auth login
-   ```
-
-3. Upload the model weights directly to your repository:
-   ```powershell
-   hf upload holypreet/svamitva-unet-weights .
-   ```
-
-> [!NOTE]
-> The backend application is pre-configured to automatically fetch model weights directly from `https://huggingface.co/holypreet/svamitva-unet-weights/resolve/main/unet_svamitva_building_best.pth` when deployed on Render!
+```
+ ┌─────────────────────────────────────────────────────────────┐
+ │ Hugging Face Hub: holypreet/svamitva-unet-weights          │
+ └──────────────────────────────┬──────────────────────────────┘
+                                │ Model weights (Auto-downloaded on request)
+                                ▼
+ ┌─────────────────────────────────────────────────────────────┐
+ │ Vercel 24/7 Global Platform                                 │
+ │                                                             │
+ │  ├── Next.js 14 App Router (Frontend Web UI)                │
+ │  └── Python FastAPI Serverless Functions (`/api/*`)          │
+ └─────────────────────────────────────────────────────────────┘
+```
 
 ---
 
-## 🚀 Step 2: Deploy Backend to Render.com (FREE Web Service)
+## 🚀 1-Click Deployment Instructions
 
-1. Push your code to **GitHub**.
-2. Go to **[Render.com](https://render.com)** and log in.
-3. Click **New +** -> **Web Service**.
-4. Connect your GitHub repository (`drone` or `svamitva-sih`).
-5. Configure the Web Service settings:
-   - **Name**: `svamitva-ai-backend`
-   - **Root Directory**: `backend`
-   - **Environment**: `Python 3`
-   - **Build Command**: `pip install -r requirements.txt`
-   - **Start Command**: `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
-   - **Instance Type**: **Free ($0/month)**
-   - **Environment Variables** *(Optional)*:
-     - `PYTHON_VERSION`: `3.11.0`
-     - `DATABASE_URL`: `sqlite:///./svamitva_drone.db` *(Defaults automatically if left blank)*
-6. Click **Create Web Service**.
-7. Once deployed, copy your live backend URL (e.g. `https://svamitva-ai-backend.onrender.com`).
+### Step 1: Upload Model Weights to Hugging Face (Completed)
+Your model weights are hosted on Hugging Face:
+`https://huggingface.co/holypreet/svamitva-unet-weights`
 
+### Step 2: Deploy Entire App on Vercel
+1. Push your repository to **GitHub**:
+   ```bash
+   git add .
+   git commit -m "Configure Vercel-only serverless deployment"
+   git push
+   ```
+2. Go to **[Vercel](https://vercel.com)** and log in with your GitHub account.
+3. Click **Add New...** -> **Project**.
+4. Import your GitHub repository (`pd71/svamvitva-sih`).
+5. Click **Deploy**!
 
----
-
-## 🚀 Step 3: Deploy Frontend to Vercel (FREE 24/7 CDN)
-
-1. Go to **[Vercel](https://vercel.com)** and log in with GitHub.
-2. Click **Add New...** -> **Project**.
-3. Import your GitHub repository (`drone` or `svamitva-sih`).
-4. Configure the settings:
-   - **Framework Preset**: Next.js
-   - **Root Directory**: Select `frontend`
-   - **Environment Variables**:
-     - **Name**: `NEXT_PUBLIC_API_URL`
-     - **Value**: `https://svamitva-ai-backend.onrender.com` *(Your Render backend URL)*
-5. Click **Deploy**.
+Vercel will automatically detect `vercel.json`, build the Next.js frontend and Python FastAPI serverless API, and give you a live HTTPS URL (`https://svamitva-sih.vercel.app`).
 
 ---
 
 ## 🎉 Done!
 
-Your web application is live **24/7 for FREE**:
-- **Frontend URL**: `https://your-project.vercel.app`
-- **Backend API**: `https://svamitva-ai-backend.onrender.com`
-- **Hugging Face Model Repository**: `https://huggingface.co/holypreet/svamitva-unet-weights`
-
-Anyone can open `https://your-project.vercel.app` from anywhere in the world 24/7!
+Your platform is live **24/7 for FREE**:
+- **Live URL**: `https://your-project.vercel.app`
+- **Zero Server Maintenance**: No external backend servers (Render/VPS) required!
