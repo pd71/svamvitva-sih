@@ -11,9 +11,8 @@ class VercelDebugMiddleware:
 
     async def __call__(self, scope, receive, send):
         if scope["type"] == "http":
-            headers = dict(scope.get("headers", []))
-            # Return debug info if requesting /debug
             path = scope.get("path", "")
+            headers = dict(scope.get("headers", []))
             if "debug" in path or "debug" in str(headers):
                 response_body = f"path: {path}\nheaders: {headers}\nscope_keys: {list(scope.keys())}".encode('utf-8')
                 await send({
@@ -29,4 +28,4 @@ class VercelDebugMiddleware:
 
         await self.app(scope, receive, send)
 
-app = fastapi_app
+app = VercelDebugMiddleware(fastapi_app)
