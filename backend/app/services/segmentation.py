@@ -27,14 +27,16 @@ def _find_contours_numpy(mask: np.ndarray) -> List[np.ndarray]:
         for i, sl in enumerate(slices):
             if sl is None:
                 continue
-            sy, sx = sl
-            region_mask = (labeled[sy, sx] == (i + 1))
-            if np.sum(region_mask) < 10:
+            min_y, max_y = sy.start, sy.stop
+            min_x, max_x = sx.start, sx.stop
+            if (max_x - min_x) < 3 or (max_y - min_y) < 3:
                 continue
-            y_indices, x_indices = np.where(region_mask)
-            abs_x = x_indices + sx.start
-            abs_y = y_indices + sy.start
-            pts = np.column_stack((abs_x, abs_y)).astype(np.int32).reshape(-1, 1, 2)
+            pts = np.array([
+                [min_x, min_y],
+                [max_x, min_y],
+                [max_x, max_y],
+                [min_x, max_y]
+            ], dtype=np.int32).reshape(-1, 1, 2)
             contours.append(pts)
         return contours
     except Exception:
