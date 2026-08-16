@@ -82,8 +82,8 @@ class PyTorchEfficientNetRoofModel(RoofClassificationModel):
         Returns: (predicted_class, confidence, probabilities_dict)
         """
         if not HAS_TORCH or not hasattr(self, 'net'):
-            from app.ml.demo_roof_classifier import DemoRoofClassifierModel
-            return DemoRoofClassifierModel().classify_roof(image_crop)
+            from app.ml.demo_roof_classifier import DemoRoofClassificationModel
+            return DemoRoofClassificationModel().classify_roof(image_crop)
 
         if image_crop is None or image_crop.size == 0:
             return "Other", 0.5, {c: 0.25 for c in self.CLASSES}
@@ -108,5 +108,5 @@ class PyTorchEfficientNetRoofModel(RoofClassificationModel):
                 return predicted_class, confidence, prob_dict
         except Exception as e:
             print(f"Error in EfficientNet roof classification: {e}")
-            from app.ml.demo_roof_classifier import DemoRoofClassifierModel
-            return DemoRoofClassifierModel().classify_roof(image_crop)
+            from app.ml.demo_roof_classifier import DemoRoofClassificationModel
+            return DemoRoofClassificationModel().classify_roof(image_crop)
