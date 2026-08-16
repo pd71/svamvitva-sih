@@ -123,13 +123,20 @@ class PyTorchUNetSegmentationModel(SegmentationModel):
 
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+        weights_dir = os.path.join(os.path.dirname(__file__), "weights")
+        try:
+            os.makedirs(weights_dir, exist_ok=True)
+        except Exception:
+            pass
+
         if os.getenv("VERCEL"):
             import tempfile
             default_weights = os.path.join(tempfile.gettempdir(), "unet_svamitva_building_best.pth")
         else:
-            default_weights = os.path.abspath("./app/ml/weights/unet_svamitva_building_best.pth")
+            default_weights = os.path.join(weights_dir, "unet_svamitva_building_best.pth")
 
         target_weights = weights_path if (weights_path and os.path.exists(weights_path)) else default_weights
+
 
 
 

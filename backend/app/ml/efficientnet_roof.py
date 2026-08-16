@@ -57,13 +57,20 @@ class PyTorchEfficientNetRoofModel(RoofClassificationModel):
         self.net.eval()
 
         import os
+        weights_dir = os.path.join(os.path.dirname(__file__), "weights")
+        try:
+            os.makedirs(weights_dir, exist_ok=True)
+        except Exception:
+            pass
+
         if os.getenv("VERCEL"):
             import tempfile
             default_weights = os.path.join(tempfile.gettempdir(), "efficientnet_svamitva_roof_best.pth")
         else:
-            default_weights = os.path.abspath("./app/ml/weights/efficientnet_svamitva_roof_best.pth")
+            default_weights = os.path.join(weights_dir, "efficientnet_svamitva_roof_best.pth")
 
         target_weights = weights_path if (weights_path and os.path.exists(weights_path)) else default_weights
+
 
         # Auto-download from Hugging Face Model Hub if missing
         if not os.path.exists(target_weights):
