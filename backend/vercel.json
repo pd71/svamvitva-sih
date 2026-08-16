@@ -1,17 +1,14 @@
 {
   "builds": [
     {
-      "src": "app/main.py",
-      "use": "@vercel/python",
-      "config": {
-        "excludeFiles": "{svamitva_dataset_repository/**,uploaded_images/**,*.db,*.sqlite3}"
-      }
+      "src": "index.py",
+      "use": "@vercel/python"
     }
   ],
   "routes": [
     {
       "src": "/(.*)",
-      "dest": "app/main.py"
+      "dest": "index.py"
     }
   ]
 }
