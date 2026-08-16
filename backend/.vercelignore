@@ -1,0 +1,8 @@
+svamitva_dataset_repository/
+uploaded_images/*
+!uploaded_images/.gitkeep
+*.db
+*.sqlite3
+__pycache__/
+*.pth
+*.pt
