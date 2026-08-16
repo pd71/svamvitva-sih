@@ -1,11 +1,20 @@
 import os
 import cv2
 import numpy as np
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
 from typing import Dict, Tuple
 from app.ml.base import SegmentationModel
+
+try:
+    import torch
+    import torch.nn as nn
+    import torch.nn.functional as F
+    HAS_TORCH = True
+except ImportError:
+    HAS_TORCH = False
+    class nn:
+        class Module:
+            pass
+
 
 # --- 1. PyTorch U-Net Neural Network Sub-Modules ---
 class DoubleConv(nn.Module):
@@ -104,8 +113,16 @@ class PyTorchUNetSegmentationModel(SegmentationModel):
     """
 
     def __init__(self, weights_path: str = None):
+        self.is_binary = True
+        self.weights_loaded = False
+        
+        if not HAS_TORCH:
+            print("PyTorch not installed in environment, using lightweight CV engine.")
+            return
+
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         default_weights = os.path.abspath("./app/ml/weights/unet_svamitva_building_best.pth")
+
         target_weights = weights_path if (weights_path and os.path.exists(weights_path)) else default_weights
 
         self.is_binary = True
