@@ -1,10 +1,10 @@
 import sys
 import os
 
-# Ensure backend root directory is at the front of sys.path
+# Ensure backend directory is in sys.path
 sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
 
 from app.main import app
 
-# Official Vercel Python Serverless handler
-handler = app
+# Export app for Vercel ASGI serverless handler
+app = app
