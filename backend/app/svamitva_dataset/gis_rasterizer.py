@@ -1,13 +1,26 @@
+"""
+SVAMITVA Dataset Repository Inspector — optional heavy deps wrapped in try/except.
+"""
 import os
 import glob
 import json
 import numpy as np
-import cv2
 from PIL import Image
 from typing import Dict, Any, List, Tuple
-import torch
-import torch.nn as nn
-import torch.optim as optim
+
+try:
+    import cv2
+    HAS_CV2 = True
+except ImportError:
+    HAS_CV2 = False
+
+try:
+    import torch
+    import torch.nn as nn
+    import torch.optim as optim
+    HAS_TORCH = True
+except ImportError:
+    HAS_TORCH = False
 
 DATASET_REPO = os.path.abspath("./svamitva_dataset_repository")
 
@@ -45,12 +58,9 @@ def inspect_svamitva_repository() -> Dict[str, Any]:
     with Image.open(sample_tif) as img:
         w, h = img.size
 
-    # Inspect SHP shapefiles using Shapely/GeoPandas if available
-    shp_attributes = []
-    geometry_types = []
     classes_discovered = ["Background", "Building Footprint"]
 
-    report = {
+    return {
         "dataset_name": "Official SVAMITVA SIH 2024 Dataset",
         "source": "svamitva.nic.in official portal",
         "tif_count": len(tif_files),
@@ -64,34 +74,32 @@ def inspect_svamitva_repository() -> Dict[str, Any]:
         "dataset_status": "SVAMITVA Dataset Ingested & Verified"
     }
 
-    return report
-
 
 def calculate_segmentation_metrics(pred_mask: np.ndarray, gt_mask: np.ndarray) -> Dict[str, float]:
     """
-    Calculates empirical IoU, Dice Score, Precision, Recall, and F1 Score for segmentation evaluation.
+    Calculates empirical IoU, Dice Score, Precision, Recall, and F1 Score.
     """
     pred_bin = (pred_mask > 0).astype(np.uint8)
-    gt_bin = (gt_mask > 0).astype(np.uint8)
+    gt_bin   = (gt_mask > 0).astype(np.uint8)
 
     intersection = np.logical_and(pred_bin, gt_bin).sum()
-    union = np.logical_or(pred_bin, gt_bin).sum()
-    
-    iou = float(intersection / max(1, union))
+    union        = np.logical_or(pred_bin, gt_bin).sum()
+
+    iou  = float(intersection / max(1, union))
     dice = float(2 * intersection / max(1, pred_bin.sum() + gt_bin.sum()))
-    
+
     tp = intersection
     fp = (pred_bin == 1) & (gt_bin == 0)
     fn = (pred_bin == 0) & (gt_bin == 1)
 
     precision = float(tp / max(1, tp + fp.sum()))
-    recall = float(tp / max(1, tp + fn.sum()))
-    f1 = float(2 * (precision * recall) / max(1e-6, precision + recall))
+    recall    = float(tp / max(1, tp + fn.sum()))
+    f1        = float(2 * (precision * recall) / max(1e-6, precision + recall))
 
     return {
-        "IoU": round(iou, 4),
-        "Dice": round(dice, 4),
+        "IoU":       round(iou, 4),
+        "Dice":      round(dice, 4),
         "Precision": round(precision, 4),
-        "Recall": round(recall, 4),
-        "F1": round(f1, 4)
+        "Recall":    round(recall, 4),
+        "F1":        round(f1, 4)
     }
