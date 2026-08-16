@@ -111,7 +111,20 @@ class PyTorchUNetSegmentationModel(SegmentationModel):
         self.is_binary = True
         self.weights_loaded = False
 
+        # Auto-download from Hugging Face Model Hub if missing
+        if not os.path.exists(target_weights):
+            hf_weights_url = "https://huggingface.co/holypreet/svamitva-unet-weights/resolve/main/unet_svamitva_building_best.pth"
+            try:
+                os.makedirs(os.path.dirname(target_weights), exist_ok=True)
+                print(f"Downloading model weights from Hugging Face Hub: {hf_weights_url} ...")
+                import urllib.request
+                urllib.request.urlretrieve(hf_weights_url, target_weights)
+                print(f"Downloaded weights successfully to {target_weights}")
+            except Exception as dl_err:
+                print(f"Could not download weights from Hugging Face Hub: {dl_err}")
+
         if os.path.exists(target_weights):
+
             try:
                 state_dict = torch.load(target_weights, map_location=self.device)
                 # Determine classes from state_dict outc weight

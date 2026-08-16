@@ -16,6 +16,16 @@ $$\text{Official SVAMITVA TIF} \rightarrow \text{Tiling} \rightarrow \text{PyTor
 
 ---
 
+## 🌐 Live Cloud Infrastructure & AI Weights
+
+| Layer | Hosting Provider | Resource / Repository |
+| :--- | :--- | :--- |
+| **Model Weight Hub** | [Hugging Face](https://huggingface.co/holypreet/svamitva-unet-weights) | [`holypreet/svamitva-unet-weights`](https://huggingface.co/holypreet/svamitva-unet-weights) |
+| **Backend API** | [Render.com](https://render.com) | Python FastAPI + PyTorch Inference Engine |
+| **Frontend UI** | [Vercel](https://vercel.com) | Next.js 14 + Tailwind CSS + Leaflet GIS |
+
+---
+
 ## 🛰 Official SVAMITVA SIH 2024 Dataset Links
 
 The application supports raw `.tif` drone imagery and `.shp` vector shapefile annotations from the official portal (`svamitva.nic.in`):
@@ -52,12 +62,13 @@ The application supports raw `.tif` drone imagery and `.shp` vector shapefile an
 | :--- | :--- | :--- |
 | **U-Net Architecture** | **Implemented** | PyTorch `UNet` tensor module running CPU/CUDA forward passes |
 | **EfficientNet Architecture** | **Implemented** | PyTorch `EfficientNet-B0` with custom 4-class classifier head |
+| **Hugging Face Weight Hub** | **Live** | Model weights hosted at `holypreet/svamitva-unet-weights` |
 | **SVAMITVA Dataset Repository** | **Scanner Ready** | Place downloaded `.tif` and `.shp` files into `backend/svamitva_dataset_repository/` |
 | **Evaluation Metrics** | **Calculated** | IoU, Dice, Precision, Recall, F1 score evaluator built in `app/svamitva_dataset/gis_rasterizer.py` |
 
 ---
 
-## 🚀 Quick Start
+## 🚀 Local Quick Start
 
 ### 1. Start Python Backend
 ```bash
@@ -72,3 +83,9 @@ cd frontend
 npm run dev
 ```
 Open `http://localhost:3000` in your web browser.
+
+---
+
+## 🌐 100% Free 24/7 Cloud Deployment Guide
+
+To deploy the platform 24/7 online for free, refer to the step-by-step guide in [`README_FREE_DEPLOYMENT.md`](README_FREE_DEPLOYMENT.md).
