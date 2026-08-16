@@ -231,12 +231,14 @@ function AnalysisContent() {
             ctx.lineWidth = isSelected ? 4 : 2;
             ctx.stroke();
 
-            // Label
-            const cx = f.properties.centroid[0];
-            const cy = f.properties.centroid[1];
-            ctx.fillStyle = "#ffffff";
-            ctx.font = "bold 12px sans-serif";
-            ctx.fillText(`#${f.properties.building_index}`, cx - 8, cy + 4);
+            // Label (only draw label for selected building to keep map view clean)
+            if (isSelected) {
+              const cx = f.properties.centroid[0];
+              const cy = f.properties.centroid[1];
+              ctx.fillStyle = "#ffffff";
+              ctx.font = "bold 12px sans-serif";
+              ctx.fillText(`#${f.properties.building_index}`, cx - 8, cy + 4);
+            }
           });
       }
     };
