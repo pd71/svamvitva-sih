@@ -45,12 +45,16 @@ if os.getenv("VERCEL"):
 else:
     UPLOAD_DIR = os.path.abspath("./uploaded_images")
 
-os.makedirs(UPLOAD_DIR, exist_ok=True)
+try:
+    os.makedirs(UPLOAD_DIR, exist_ok=True)
+except Exception:
+    pass
 
 try:
     app.mount("/static", StaticFiles(directory=UPLOAD_DIR), name="static")
 except Exception as static_err:
     print(f"Static files mount notice: {static_err}")
+
 
 @app.on_event("startup")
 def startup_event():
