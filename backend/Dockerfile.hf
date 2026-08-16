@@ -4,12 +4,12 @@ WORKDIR /app
 
 # Install system dependencies for OpenCV and spatial graphics
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    libgl1-mesa-glx \
+    libgl1 \
     libglib2.0-0 \
-    libgdal-dev \
     gcc \
     g++ \
     && rm -rf /var/lib/apt/lists/*
+
 
 # Create user 1000 for Hugging Face Spaces non-root execution
 RUN useradd -m -u 1000 user
