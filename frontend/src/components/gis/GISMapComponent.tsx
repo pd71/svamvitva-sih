@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
+import { getApiUrl } from "@/lib/api";
+
 interface GISMapProps {
   analysis: any;
   features: any;
@@ -39,8 +41,9 @@ export default function GISMapComponent({ analysis, features, onSelectFeature }:
     });
 
     // Image overlay layer
-    const imageUrl = `/api/analysis/${analysis.id}/image`;
+    const imageUrl = getApiUrl(`/api/analysis/${analysis.id}/image`);
     L.imageOverlay(imageUrl, bounds).addTo(leafletMap);
+
     leafletMap.fitBounds(bounds);
 
     // Color map for roof types

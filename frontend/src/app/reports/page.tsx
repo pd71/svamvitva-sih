@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { FileSpreadsheet, Download, FileText, Code2, CheckCircle2, MapPin } from "lucide-react";
+import { getApiUrl } from "@/lib/api";
 
 export default function ReportsPage() {
   const [analyses, setAnalyses] = useState<any[]>([]);
@@ -12,7 +13,7 @@ export default function ReportsPage() {
 
   const fetchAnalyses = async () => {
     try {
-      const res = await fetch("/api/analyses");
+      const res = await fetch(getApiUrl("/api/analyses"));
       if (res.ok) {
         const data = await res.json();
         setAnalyses(data);
@@ -24,7 +25,7 @@ export default function ReportsPage() {
 
   const handleDownloadGeoJSON = async (id: string, villageName: string) => {
     try {
-      const res = await fetch(`/api/analysis/${id}/features`);
+      const res = await fetch(getApiUrl(`/api/analysis/${id}/features`));
       if (res.ok) {
         const data = await res.json();
         const jsonStr = JSON.stringify(data, null, 2);
@@ -39,6 +40,8 @@ export default function ReportsPage() {
       console.error(err);
     }
   };
+
+
 
   return (
     <div className="space-y-6">
@@ -90,7 +93,7 @@ export default function ReportsPage() {
                 <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
                   {/* PDF Download Button */}
                   <a
-                    href={`/api/analysis/${item.id}/report`}
+                    href={getApiUrl(`/api/analysis/${item.id}/report`)}
                     target="_blank"
                     rel="noreferrer"
                     className="flex-1 md:flex-initial flex items-center justify-center space-x-1.5 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 text-white px-3.5 py-2 rounded text-xs font-semibold shadow transition-all"
@@ -101,7 +104,7 @@ export default function ReportsPage() {
 
                   {/* CSV Export Button */}
                   <a
-                    href={`/api/analysis/${item.id}/export-csv`}
+                    href={getApiUrl(`/api/analysis/${item.id}/export-csv`)}
                     target="_blank"
                     rel="noreferrer"
                     className="flex-1 md:flex-initial flex items-center justify-center space-x-1.5 bg-emerald-600 hover:bg-emerald-500 text-white px-3.5 py-2 rounded text-xs font-semibold shadow transition-all"
@@ -109,6 +112,7 @@ export default function ReportsPage() {
                     <Download className="w-4 h-4" />
                     <span>Export CSV</span>
                   </a>
+
 
                   {/* GeoJSON Export Button */}
                   <button

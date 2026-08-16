@@ -17,6 +17,8 @@ import {
   Clock
 } from "lucide-react";
 
+import { getApiUrl } from "@/lib/api";
+
 export default function Dashboard() {
   const [stats, setStats] = useState<any>(null);
   const [datasetInfo, setDatasetInfo] = useState<any>(null);
@@ -26,13 +28,13 @@ export default function Dashboard() {
   const fetchStats = async () => {
     try {
       setLoading(true);
-      const res = await fetch("/api/dashboard/stats");
+      const res = await fetch(getApiUrl("/api/dashboard/stats"));
       if (res.ok) {
         const data = await res.json();
         setStats(data);
       }
 
-      const resD = await fetch("/api/svamitva-dataset");
+      const resD = await fetch(getApiUrl("/api/svamitva-dataset"));
       if (resD.ok) {
         const dataD = await resD.json();
         setDatasetInfo(dataD);
@@ -51,7 +53,8 @@ export default function Dashboard() {
   const handleLoadDemo = async () => {
     try {
       setDemoLoading(true);
-      const res = await fetch("/api/analysis/demo", { method: "POST" });
+      const res = await fetch(getApiUrl("/api/analysis/demo"), { method: "POST" });
+
       if (res.ok) {
         const data = await res.json();
         window.location.href = `/analysis?id=${data.id}`;

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { CheckSquare, CheckCircle2, XCircle, Edit3, ShieldAlert, Save, RefreshCw } from "lucide-react";
+import { getApiUrl } from "@/lib/api";
 
 export default function ReviewPage() {
   const [analyses, setAnalyses] = useState<any[]>([]);
@@ -19,7 +20,7 @@ export default function ReviewPage() {
 
   const fetchAnalyses = async () => {
     try {
-      const res = await fetch("/api/analyses");
+      const res = await fetch(getApiUrl("/api/analyses"));
       if (res.ok) {
         const data = await res.json();
         setAnalyses(data);
@@ -34,7 +35,7 @@ export default function ReviewPage() {
 
   const fetchDetail = async (id: string) => {
     try {
-      const res = await fetch(`/api/analysis/${id}`);
+      const res = await fetch(getApiUrl(`/api/analysis/${id}`));
       if (res.ok) {
         const data = await res.json();
         setAnalysisDetail(data);
@@ -56,7 +57,7 @@ export default function ReviewPage() {
       const updatedRoof = editRoofMap[buildingId];
       const comments = commentMap[buildingId];
 
-      const res = await fetch(`/api/features/${buildingId}/review`, {
+      const res = await fetch(getApiUrl(`/api/features/${buildingId}/review`), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

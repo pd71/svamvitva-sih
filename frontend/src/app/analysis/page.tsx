@@ -18,6 +18,8 @@ import {
   Sparkles
 } from "lucide-react";
 
+import { getApiUrl } from "@/lib/api";
+
 function AnalysisContent() {
   const searchParams = useSearchParams();
   const initialId = searchParams.get("id");
@@ -43,7 +45,7 @@ function AnalysisContent() {
   // Load Analysis Detail and Poll Status
   const fetchAnalysisDetail = async (id: string) => {
     try {
-      const res = await fetch(`/api/analysis/${id}`);
+      const res = await fetch(getApiUrl(`/api/analysis/${id}`));
       if (res.ok) {
         const data = await res.json();
         setAnalysis(data);
@@ -58,7 +60,7 @@ function AnalysisContent() {
 
   const fetchFeatures = async (id: string) => {
     try {
-      const res = await fetch(`/api/analysis/${id}/features`);
+      const res = await fetch(getApiUrl(`/api/analysis/${id}/features`));
       if (res.ok) {
         const data = await res.json();
         setFeatures(data);
@@ -75,7 +77,7 @@ function AnalysisContent() {
 
     const interval = setInterval(async () => {
       try {
-        const res = await fetch(`/api/analysis/${analysisId}/status`);
+        const res = await fetch(getApiUrl(`/api/analysis/${analysisId}/status`));
         if (res.ok) {
           const statusData = await res.json();
           setAnalysis((prev: any) => ({ ...prev, ...statusData }));
@@ -93,7 +95,6 @@ function AnalysisContent() {
       }
     }, 1500);
 
-
     return () => clearInterval(interval);
   }, [analysisId]);
 
@@ -108,7 +109,7 @@ function AnalysisContent() {
     formData.append("village_name", villageName);
 
     try {
-      const res = await fetch("/api/analysis/upload", {
+      const res = await fetch(getApiUrl("/api/analysis/upload"), {
         method: "POST",
         body: formData,
       });
@@ -126,7 +127,7 @@ function AnalysisContent() {
   const handleLoadDemo = async () => {
     setUploading(true);
     try {
-      const res = await fetch("/api/analysis/demo", { method: "POST" });
+      const res = await fetch(getApiUrl("/api/analysis/demo"), { method: "POST" });
       if (res.ok) {
         const data = await res.json();
         setAnalysisId(data.id);
@@ -147,10 +148,11 @@ function AnalysisContent() {
     if (!ctx) return;
 
     const img = new Image();
-    const imageSrc = `/api/analysis/${analysis.id}/image`;
+    const imageSrc = getApiUrl(`/api/analysis/${analysis.id}/image`);
     img.src = imageSrc;
 
     img.onload = () => {
+
       imageObjRef.current = img;
       canvas.width = img.width;
       canvas.height = img.height;

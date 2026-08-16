@@ -14,6 +14,8 @@ const GISMapComponent = dynamic(() => import("@/components/gis/GISMapComponent")
   ),
 });
 
+import { getApiUrl } from "@/lib/api";
+
 export default function GISViewPage() {
   const [analyses, setAnalyses] = useState<any[]>([]);
   const [selectedAnalysisId, setSelectedAnalysisId] = useState<string>("");
@@ -27,7 +29,7 @@ export default function GISViewPage() {
 
   const fetchAnalyses = async () => {
     try {
-      const res = await fetch("/api/analyses");
+      const res = await fetch(getApiUrl("/api/analyses"));
       if (res.ok) {
         const data = await res.json();
         setAnalyses(data);
@@ -45,13 +47,13 @@ export default function GISViewPage() {
 
     const loadData = async () => {
       try {
-        const resA = await fetch(`/api/analysis/${selectedAnalysisId}`);
+        const resA = await fetch(getApiUrl(`/api/analysis/${selectedAnalysisId}`));
         if (resA.ok) {
           const dataA = await resA.json();
           setAnalysis(dataA);
         }
 
-        const resF = await fetch(`/api/analysis/${selectedAnalysisId}/features`);
+        const resF = await fetch(getApiUrl(`/api/analysis/${selectedAnalysisId}/features`));
         if (resF.ok) {
           const dataF = await resF.json();
           setFeatures(dataF);
@@ -63,6 +65,7 @@ export default function GISViewPage() {
 
     loadData();
   }, [selectedAnalysisId]);
+
 
   return (
     <div className="space-y-6">

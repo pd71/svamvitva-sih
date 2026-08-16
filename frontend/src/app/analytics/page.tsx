@@ -16,6 +16,8 @@ import {
 } from "lucide-react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from "recharts";
 
+import { getApiUrl } from "@/lib/api";
+
 export default function AnalyticsPage() {
   const [analyses, setAnalyses] = useState<any[]>([]);
   const [selectedAnalysisId, setSelectedAnalysisId] = useState<string>("");
@@ -33,7 +35,7 @@ export default function AnalyticsPage() {
 
   const fetchAnalyses = async () => {
     try {
-      const res = await fetch("/api/analyses");
+      const res = await fetch(getApiUrl("/api/analyses"));
       if (res.ok) {
         const data = await res.json();
         setAnalyses(data);
@@ -51,7 +53,7 @@ export default function AnalyticsPage() {
 
     const fetchStatistics = async () => {
       try {
-        const res = await fetch(`/api/analysis/${selectedAnalysisId}/statistics`);
+        const res = await fetch(getApiUrl(`/api/analysis/${selectedAnalysisId}/statistics`));
         if (res.ok) {
           const data = await res.json();
           setStats(data);
@@ -74,10 +76,11 @@ export default function AnalyticsPage() {
     formData.append("curr_file", currFile);
 
     try {
-      const res = await fetch("/api/change-detection", {
+      const res = await fetch(getApiUrl("/api/change-detection"), {
         method: "POST",
         body: formData,
       });
+
       if (res.ok) {
         const data = await res.json();
         setChangeResults(data);
