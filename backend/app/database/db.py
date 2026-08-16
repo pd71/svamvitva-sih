@@ -1,9 +1,16 @@
 import os
+import tempfile
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./svamitva_drone.db")
+if os.getenv("VERCEL"):
+    tmp_db_path = os.path.join(tempfile.gettempdir(), "svamitva_drone.db")
+    default_db = f"sqlite:///{tmp_db_path}"
+else:
+    default_db = "sqlite:///./svamitva_drone.db"
+
+DATABASE_URL = os.getenv("DATABASE_URL", default_db)
 
 # For SQLite, enable check_same_thread=False
 connect_args = {"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {}

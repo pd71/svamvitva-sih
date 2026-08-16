@@ -29,8 +29,14 @@ app.add_middleware(
 # Include API endpoints
 app.include_router(api_router)
 
+import tempfile
+
 # Serve uploaded static media files
-UPLOAD_DIR = os.path.abspath("./uploaded_images")
+if os.getenv("VERCEL"):
+    UPLOAD_DIR = os.path.join(tempfile.gettempdir(), "uploaded_images")
+else:
+    UPLOAD_DIR = os.path.abspath("./uploaded_images")
+
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 app.mount("/static", StaticFiles(directory=UPLOAD_DIR), name="static")
 
@@ -39,8 +45,12 @@ def startup_event():
     """
     Generate sample village orthophoto on startup to ensure instant zero-setup demo experience.
     """
-    sample_file = os.path.join(UPLOAD_DIR, "demo_village.png")
-    generate_sample_village_orthophoto(sample_file)
+    try:
+        sample_file = os.path.join(UPLOAD_DIR, "demo_village.png")
+        generate_sample_village_orthophoto(sample_file)
+    except Exception as e:
+        print(f"Startup demo generation notice: {e}")
+
 
 @app.get("/")
 def root():
