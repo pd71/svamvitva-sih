@@ -68,8 +68,8 @@ def startup_event():
     except Exception as e:
         print(f"Startup demo generation notice: {e}")
 
-@app.get("/")
-@app.get("/api")
+@app.api_route("/", methods=["GET", "HEAD"])
+@app.api_route("/api", methods=["GET", "HEAD"])
 def root():
     return {
         "service": "SVAMITVA AI Feature Extraction Platform Backend",
@@ -78,6 +78,7 @@ def root():
         "problem_id": "DJS_26_SW_08",
         "docs_url": "/docs"
     }
+
 
 if __name__ == "__main__":
     import uvicorn

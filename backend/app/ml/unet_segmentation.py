@@ -133,20 +133,37 @@ class PyTorchUNetSegmentationModel(SegmentationModel):
 
 
 
-        self.is_binary = True
-        self.weights_loaded = False
+        repo_id = os.getenv("HF_MODEL_REPO_UNET", "holypreet/svamitva-unet-weights")
+        filename = "unet_svamitva_building_best.pth"
 
         # Auto-download from Hugging Face Model Hub if missing
         if not os.path.exists(target_weights):
-            hf_weights_url = "https://huggingface.co/holypreet/svamitva-unet-weights/resolve/main/unet_svamitva_building_best.pth"
+            os.makedirs(os.path.dirname(target_weights), exist_ok=True)
+            dl_success = False
+
+            # Strategy 1: Try using huggingface_hub Python library
             try:
-                os.makedirs(os.path.dirname(target_weights), exist_ok=True)
-                print(f"Downloading model weights from Hugging Face Hub: {hf_weights_url} ...")
-                import urllib.request
-                urllib.request.urlretrieve(hf_weights_url, target_weights)
-                print(f"Downloaded weights successfully to {target_weights}")
-            except Exception as dl_err:
-                print(f"Could not download weights from Hugging Face Hub: {dl_err}")
+                from huggingface_hub import hf_hub_download
+                print(f"Downloading U-Net model from HF Hub ({repo_id}/{filename})...")
+                downloaded_file = hf_hub_download(repo_id=repo_id, filename=filename)
+                import shutil
+                shutil.copy(downloaded_file, target_weights)
+                dl_success = True
+                print(f"Successfully cached Hugging Face weights to {target_weights}")
+            except Exception as hf_err:
+                print(f"huggingface_hub download attempt notice: {hf_err}")
+
+            # Strategy 2: Fallback to direct HTTP URL download
+            if not dl_success:
+                hf_weights_url = f"https://huggingface.co/{repo_id}/resolve/main/{filename}"
+                try:
+                    print(f"Downloading model weights via HTTPS fallback from: {hf_weights_url} ...")
+                    import urllib.request
+                    urllib.request.urlretrieve(hf_weights_url, target_weights)
+                    print(f"Downloaded weights successfully to {target_weights}")
+                except Exception as dl_err:
+                    print(f"Could not download weights from Hugging Face Hub: {dl_err}")
+
 
         if os.path.exists(target_weights):
 

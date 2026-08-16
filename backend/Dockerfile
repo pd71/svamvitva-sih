@@ -14,8 +14,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Create writable directories for uploads and model weight caching
+RUN mkdir -p /app/uploaded_images /app/app/ml/weights /app/svamitva_dataset_repository
+
 COPY . .
 
-EXPOSE 8000
+ENV PORT=10000
+EXPOSE 10000
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-10000}"]
+

@@ -21,12 +21,13 @@ $$\text{Official SVAMITVA TIF} \rightarrow \text{Tiling} \rightarrow \text{PyTor
 | Layer | Hosting Provider | Resource / Repository |
 | :--- | :--- | :--- |
 | **Model Weight Hub** | [Hugging Face](https://huggingface.co/holypreet/svamitva-unet-weights) | [`holypreet/svamitva-unet-weights`](https://huggingface.co/holypreet/svamitva-unet-weights) |
-| **Full Stack App** | [Vercel](https://vercel.com) | Next.js 14 + Python FastAPI Serverless Functions (`/api/*`) |
-
+| **Backend Web Service** | [Render](https://render.com) | Python FastAPI Docker Web Service (`render.yaml`) |
+| **Frontend Web App** | [Vercel](https://vercel.com) | Next.js 14 Web UI |
 
 ---
 
 ## 🛰 Official SVAMITVA SIH 2024 Dataset Links
+
 
 The application supports raw `.tif` drone imagery and `.shp` vector shapefile annotations from the official portal (`svamitva.nic.in`):
 
@@ -86,6 +87,7 @@ Open `http://localhost:3000` in your web browser.
 
 ---
 
-## 🌐 100% Free 24/7 Cloud Deployment Guide
+## 🌐 Render Backend & Cloud Deployment Guide
 
-To deploy the platform 24/7 online for free, refer to the step-by-step guide in [`README_FREE_DEPLOYMENT.md`](README_FREE_DEPLOYMENT.md).
+To deploy the FastAPI backend service 24/7 on **Render** using Hugging Face models, refer to the step-by-step guide in [`README_RENDER_DEPLOYMENT.md`](README_RENDER_DEPLOYMENT.md).
+

@@ -56,8 +56,32 @@ class PyTorchEfficientNetRoofModel(RoofClassificationModel):
         self.net.to(self.device)
         self.net.eval()
 
-        if weights_path:
-            self.load_model(weights_path)
+        import os
+        if os.getenv("VERCEL"):
+            import tempfile
+            default_weights = os.path.join(tempfile.gettempdir(), "efficientnet_svamitva_roof_best.pth")
+        else:
+            default_weights = os.path.abspath("./app/ml/weights/efficientnet_svamitva_roof_best.pth")
+
+        target_weights = weights_path if (weights_path and os.path.exists(weights_path)) else default_weights
+
+        # Auto-download from Hugging Face Model Hub if missing
+        if not os.path.exists(target_weights):
+            repo_id = os.getenv("HF_MODEL_REPO_EFFICIENTNET", "holypreet/svamitva-unet-weights")
+            filename = "efficientnet_svamitva_roof_best.pth"
+            try:
+                os.makedirs(os.path.dirname(target_weights), exist_ok=True)
+                from huggingface_hub import hf_hub_download
+                print(f"Downloading EfficientNet roof model from HF Hub ({repo_id}/{filename})...")
+                downloaded_file = hf_hub_download(repo_id=repo_id, filename=filename)
+                import shutil
+                shutil.copy(downloaded_file, target_weights)
+            except Exception as dl_err:
+                print(f"EfficientNet HF Hub auto-download notice: {dl_err}")
+
+        if os.path.exists(target_weights):
+            self.load_model(target_weights)
+
 
     def load_model(self, weights_path: str = None) -> bool:
         if not HAS_TORCH or not hasattr(self, 'net'):
