@@ -1,9 +1,17 @@
 import cv2
 import numpy as np
-import torch
-import torch.nn as nn
 from typing import Dict, Tuple
 from app.ml.base import RoofClassificationModel
+
+try:
+    import torch
+    import torch.nn as nn
+    HAS_TORCH = True
+except ImportError:
+    HAS_TORCH = False
+    class nn:
+        class Module:
+            pass
 
 try:
     import torchvision.models as models
@@ -22,6 +30,12 @@ class PyTorchEfficientNetRoofModel(RoofClassificationModel):
     CLASSES = ["RCC", "Tiled", "Tin", "Other"]
 
     def __init__(self, weights_path: str = None):
+        self.weights_loaded = False
+        
+        if not HAS_TORCH:
+            print("PyTorch not installed in environment, using lightweight CV roof classifier.")
+            return
+
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         
         if HAS_TORCHVISION:
@@ -40,21 +54,13 @@ class PyTorchEfficientNetRoofModel(RoofClassificationModel):
             )
         self.net.to(self.device)
         self.net.eval()
-        
-        self.weights_loaded = False
-
-    def transform_image(self, image_crop: np.ndarray) -> torch.Tensor:
-        resized = cv2.resize(image_crop, (128, 128))
-        tensor = torch.from_numpy(resized.astype(np.float32) / 255.0).permute(2, 0, 1)
-        mean = torch.tensor([0.485, 0.456, 0.406]).view(3, 1, 1)
-        std = torch.tensor([0.229, 0.224, 0.225]).view(3, 1, 1)
-        return (tensor - mean) / std
-
 
         if weights_path:
             self.load_model(weights_path)
 
     def load_model(self, weights_path: str = None) -> bool:
+        if not HAS_TORCH or not hasattr(self, 'net'):
+            return False
         try:
             state_dict = torch.load(weights_path, map_location=self.device)
             self.net.load_state_dict(state_dict)
@@ -67,51 +73,37 @@ class PyTorchEfficientNetRoofModel(RoofClassificationModel):
     @property
     def model_name(self) -> str:
         status = "SVAMITVA-Trained Weights" if self.weights_loaded else "Demo Checkpoint (PyTorch CPU Ready)"
-        return f"PyTorch EfficientNet-B4 Neural Network [{status}]"
+        return f"PyTorch EfficientNet-B0 Neural Network [{status}]"
 
     def classify_roof(self, image_crop: np.ndarray) -> Tuple[str, float, Dict[str, float]]:
         """
         Input: crop image array (H, W, 3) in RGB format.
         Returns: (predicted_class, confidence, probabilities_dict)
         """
+        if not HAS_TORCH or not hasattr(self, 'net'):
+            from app.ml.demo_roof_classifier import DemoRoofClassifierModel
+            return DemoRoofClassifierModel().classify_roof(image_crop)
+
         if image_crop is None or image_crop.size == 0:
-            return "RCC", 0.85, {"RCC": 0.85, "Tiled": 0.05, "Tin": 0.05, "Other": 0.05}
+            return "Other", 0.5, {c: 0.25 for c in self.CLASSES}
 
-        # Crop color space statistics
-        hsv = cv2.cvtColor(cv2.cvtColor(image_crop, cv2.COLOR_RGB2BGR), cv2.COLOR_BGR2HSV)
-        mean_h = np.mean(hsv[:, :, 0])
-        mean_s = np.mean(hsv[:, :, 1])
-        mean_v = np.mean(hsv[:, :, 2])
-
-        # Preprocess tensor for EfficientNet
         try:
-            crop_resized = cv2.resize(image_crop, (128, 128))
-            tensor = self.transform(crop_resized).unsqueeze(0).to(self.device)
+            resized = cv2.resize(image_crop, (128, 128))
+            tensor = torch.from_numpy(resized.astype(np.float32) / 255.0).permute(2, 0, 1)
+            mean = torch.tensor([0.485, 0.456, 0.406]).view(3, 1, 1)
+            std = torch.tensor([0.229, 0.224, 0.225]).view(3, 1, 1)
+            tensor = ((tensor - mean) / std).unsqueeze(0).to(self.device)
 
             with torch.no_grad():
                 logits = self.net(tensor)
-                probs = torch.softmax(logits, dim=1).squeeze(0).cpu().numpy()
+                probs = torch.softmax(logits, dim=1).squeeze().cpu().numpy()
+                pred_idx = int(np.argmax(probs))
+                predicted_class = self.CLASSES[pred_idx]
+                confidence = float(probs[pred_idx])
 
-            # Align PyTorch probabilities with color features for demo consistency
-            scores = {cls: float(probs[i]) for i, cls in enumerate(self.CLASSES)}
-
-            # Color heuristic adjustment
-            if (mean_h <= 25 or mean_h >= 155) and mean_s > 45:
-                scores["Tiled"] += 0.65
-            elif (75 <= mean_h <= 125 and mean_s > 35) or (mean_v > 200 and mean_s < 30):
-                scores["Tin"] += 0.65
-            elif mean_s <= 45 and 60 <= mean_v <= 210:
-                scores["RCC"] += 0.65
-            else:
-                scores["Other"] += 0.50
-
-            total = sum(scores.values())
-            final_probs = {k: round(v / total, 4) for k, v in scores.items()}
-            
-            predicted_class = max(final_probs, key=final_probs.get)
-            confidence = final_probs[predicted_class]
-
-            return predicted_class, confidence, final_probs
-
+                prob_dict = {self.CLASSES[i]: float(probs[i]) for i in range(len(self.CLASSES))}
+                return predicted_class, confidence, prob_dict
         except Exception as e:
-            return "RCC", 0.80, {"RCC": 0.80, "Tiled": 0.10, "Tin": 0.05, "Other": 0.05}
+            print(f"Error in EfficientNet roof classification: {e}")
+            from app.ml.demo_roof_classifier import DemoRoofClassifierModel
+            return DemoRoofClassifierModel().classify_roof(image_crop)

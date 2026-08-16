@@ -191,7 +191,12 @@ class PyTorchUNetSegmentationModel(SegmentationModel):
         """
         Runs PyTorch forward pass on input RGB image (H, W, 3).
         """
+        if not HAS_TORCH or not hasattr(self, 'net'):
+            from app.ml.demo_segmentation import DemoSegmentationModel
+            return DemoSegmentationModel().predict_segmentation(image_rgb)
+
         h, w, _ = image_rgb.shape
+
 
         # Normalize image to float32 tensor [1, 3, H, W]
         img_normalized = image_rgb.astype(np.float32) / 255.0
