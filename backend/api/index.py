@@ -10,7 +10,8 @@ from app.main import app as fastapi_app
 class VercelFix:
     """
     Parses original URL path passed in ?path=/$1 query parameter by Vercel rewrites,
-    setting scope['path'] and scope['raw_path'] so FastAPI matches exact route definitions.
+    resets scope['root_path'] to empty string, and sets scope['path'] & scope['raw_path']
+    so FastAPI matches exact route definitions natively on Vercel Serverless.
     """
     def __init__(self, app):
         self.app = app
@@ -31,6 +32,8 @@ class VercelFix:
                         path = path[len(prefix):]
                         break
                 scope["path"] = path if path else "/"
+            
+            scope["root_path"] = ""
             scope["raw_path"] = scope["path"].encode("utf-8")
         await self.app(scope, receive, send)
 
