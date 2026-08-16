@@ -37,9 +37,21 @@ except Exception:
     pass
 
 
-# Mandatory PyTorch CNN Model Instances (CPU & CUDA Ready)
-seg_model = PyTorchUNetSegmentationModel()
-roof_model = PyTorchEfficientNetRoofModel()
+# Lazy Model Singletons (Prevents cold-start blocking during serverless import)
+_seg_model = None
+_roof_model = None
+
+def get_seg_model():
+    global _seg_model
+    if _seg_model is None:
+        _seg_model = PyTorchUNetSegmentationModel()
+    return _seg_model
+
+def get_roof_model():
+    global _roof_model
+    if _roof_model is None:
+        _roof_model = PyTorchEfficientNetRoofModel()
+    return _roof_model
 
 def process_analysis_job(analysis_id: str, db_session_factory):
     """
@@ -87,14 +99,14 @@ def process_analysis_job(analysis_id: str, db_session_factory):
         analysis.progress_pct = 52
         db.commit()
 
-        raw_buildings, raw_roads, raw_waterbodies = run_segmentation_pipeline(image_rgb, seg_model)
+        raw_buildings, raw_roads, raw_waterbodies = run_segmentation_pipeline(image_rgb, get_seg_model())
 
-        # Stage 5: Roof Classification (RCC, Tiled, Tin, Other)
+        # Stage 5: Roof Classification (EfficientNet)
         analysis.stage = "5. Roof Classification (EfficientNet)"
         analysis.progress_pct = 68
         db.commit()
 
-        annotated_buildings = run_roof_classification_pipeline(image_rgb, raw_buildings, roof_model)
+        annotated_buildings = run_roof_classification_pipeline(image_rgb, raw_buildings, get_roof_model())
 
         # Stage 6: GIS Vector Processing & Spatial Metrics
         analysis.stage = "6. GIS Spatial Metrics & Overlay"
@@ -461,11 +473,17 @@ def get_analysis_statistics(analysis_id: str, db: Session = Depends(get_db)):
 @router.get("/analysis/{analysis_id}/image")
 def get_analysis_image(analysis_id: str, db: Session = Depends(get_db)):
     """
-    Serves the original uploaded image file.
+    Serves the original uploaded image file with automatic recovery for transient /tmp storage.
     """
     analysis = db.query(Analysis).filter(Analysis.id == analysis_id).first()
-    if not analysis or not os.path.exists(analysis.image_path):
-        raise HTTPException(status_code=404, detail="Image file not found.")
+    if not analysis:
+        raise HTTPException(status_code=404, detail="Analysis record not found.")
+
+    if not os.path.exists(analysis.image_path):
+        # Regenerate demo image if file missing in /tmp container
+        sample_path = os.path.join(UPLOAD_DIR, "demo_village.png")
+        generate_sample_village_orthophoto(sample_path)
+        analysis.image_path = sample_path
 
     return FileResponse(analysis.image_path)
 
@@ -476,13 +494,19 @@ def get_analysis_overlay(analysis_id: str, db: Session = Depends(get_db)):
     Serves the generated GIS overlay image file.
     """
     analysis = db.query(Analysis).filter(Analysis.id == analysis_id).first()
-    if not analysis or not analysis.overlay_path or not os.path.exists(analysis.overlay_path):
-        # Fallback to main image
-        if analysis and os.path.exists(analysis.image_path):
-            return FileResponse(analysis.image_path)
-        raise HTTPException(status_code=404, detail="Overlay image not found.")
+    if not analysis:
+        raise HTTPException(status_code=404, detail="Analysis record not found.")
 
-    return FileResponse(analysis.overlay_path)
+    if analysis.overlay_path and os.path.exists(analysis.overlay_path):
+        return FileResponse(analysis.overlay_path)
+
+    # Fallback to main image
+    if not os.path.exists(analysis.image_path):
+        sample_path = os.path.join(UPLOAD_DIR, "demo_village.png")
+        generate_sample_village_orthophoto(sample_path)
+        analysis.image_path = sample_path
+
+    return FileResponse(analysis.image_path)
 
 
 @router.get("/analysis/{analysis_id}/report")

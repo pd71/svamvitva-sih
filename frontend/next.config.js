@@ -2,7 +2,8 @@
 const nextConfig = {
   reactStrictMode: false,
   async rewrites() {
-    const backendUrl = process.env.NEXT_PUBLIC_API_URL || process.env.BACKEND_URL || 'http://localhost:8000';
+    const rawUrl = process.env.NEXT_PUBLIC_API_URL || process.env.BACKEND_URL || 'http://localhost:8000';
+    const backendUrl = rawUrl.replace(/\/+$/, '');
     return [
       {
         source: '/api/:path*',
