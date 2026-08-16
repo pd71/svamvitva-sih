@@ -39,6 +39,8 @@ app.add_middleware(
 # Mount API endpoints under all possible Vercel serverless path variations
 app.include_router(api_router, prefix="")
 app.include_router(api_router, prefix="/api")
+app.include_router(api_router, prefix="/main.py")
+app.include_router(api_router, prefix="/main.py/api")
 app.include_router(api_router, prefix="/api/index.py")
 app.include_router(api_router, prefix="/api/index.py/api")
 app.include_router(api_router, prefix="/api/index")
@@ -74,6 +76,8 @@ def startup_event():
 
 @app.get("/")
 @app.get("/api")
+@app.get("/main.py")
+@app.get("/main.py/")
 @app.get("/api/index.py")
 @app.get("/api/index.py/")
 @app.get("/api/index")
@@ -85,13 +89,6 @@ def root():
         "team": "Nerdvana",
         "problem_id": "DJS_26_SW_08",
         "docs_url": "/docs"
-    }
-
-@app.api_route("/{full_path:path}", methods=["GET", "POST", "PUT", "DELETE"])
-def catch_all(full_path: str):
-    return {
-        "debug_notice": "Catch All Route Inspector",
-        "full_path": full_path
     }
 
 if __name__ == "__main__":
