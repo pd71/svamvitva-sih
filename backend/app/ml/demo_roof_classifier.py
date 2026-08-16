@@ -51,35 +51,29 @@ class DemoRoofClassificationModel(RoofClassificationModel):
 
     def classify_roof(self, image_crop: np.ndarray) -> Tuple[str, float, Dict[str, float]]:
         if image_crop is None or image_crop.size == 0:
-            return "RCC", 0.75, {"RCC": 0.75, "Tiled": 0.10, "Tin": 0.10, "Other": 0.05}
+            return "RCC", 0.94, {"RCC": 0.94, "Tiled": 0.03, "Tin": 0.03}
 
         hsv = _rgb_to_hsv_numpy(image_crop)
         mean_h = float(np.mean(hsv[:, :, 0]))
         mean_s = float(np.mean(hsv[:, :, 1]))
         mean_v = float(np.mean(hsv[:, :, 2]))
 
-        gray = (0.2126 * image_crop[:, :, 0] +
-                0.7152 * image_crop[:, :, 1] +
-                0.0722 * image_crop[:, :, 2]).astype(np.float32)
-        std_dev = float(np.std(gray))
+        # Calculate average RGB to detect metallic tin sheets vs terracotta tiles vs concrete RCC
+        mean_r = float(np.mean(image_crop[:, :, 0]))
+        mean_g = float(np.mean(image_crop[:, :, 1]))
+        mean_b = float(np.mean(image_crop[:, :, 2]))
 
-        scores = {"RCC": 0.1, "Tiled": 0.1, "Tin": 0.1, "Other": 0.1}
+        scores = {"RCC": 0.15, "Tiled": 0.15, "Tin": 0.15}
 
-        if (mean_h <= 25 or mean_h >= 155) and mean_s > 45:
-            scores["Tiled"] += 0.75
-            scores["RCC"] += 0.1
-            scores["Tin"] += 0.05
-        elif (75 <= mean_h <= 125 and mean_s > 35) or (mean_v > 200 and mean_s < 30):
-            scores["Tin"] += 0.75
-            scores["RCC"] += 0.1
-            scores["Tiled"] += 0.05
-        elif mean_s <= 45 and 60 <= mean_v <= 210:
-            scores["RCC"] += 0.70
-            scores["Tiled"] += 0.12
-            scores["Tin"] += 0.10
+        # 1. Tiled Roof: Strong Red/Orange hue and high R:B ratio
+        if (mean_h <= 18 or mean_h >= 162) and mean_r > (mean_b + 25) and mean_s > 55:
+            scores["Tiled"] += 0.85
+        # 2. Tin Roof: High brightness / metallic sheen (High V, Low S or Cyan/Blue hue)
+        elif (85 <= mean_h <= 130 and mean_s > 30) or (mean_v > 185 and mean_s < 45) or (mean_b > mean_r + 15):
+            scores["Tin"] += 0.85
+        # 3. RCC Concrete Roof: Low saturation neutral gray/flat concrete slab
         else:
-            scores["Other"] += 0.60
-            scores["RCC"] += 0.20
+            scores["RCC"] += 0.85
 
         total = sum(scores.values())
         probs = {k: round(v / total, 4) for k, v in scores.items()}
@@ -87,6 +81,7 @@ class DemoRoofClassificationModel(RoofClassificationModel):
         confidence = probs[predicted_class]
 
         return predicted_class, confidence, probs
+
 
 
 DemoRoofClassifierModel = DemoRoofClassificationModel

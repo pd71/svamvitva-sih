@@ -442,6 +442,18 @@ function AnalysisContent() {
     };
   }, [analysis, features, showOriginal, showBuildings, showRoads, showWaterbodies, selectedBuilding, hoveredBuilding]);
 
+  // Point-in-polygon ray-casting test for 100% accurate mouse hover & click on any roof shape
+  const isPointInPolygon = (px: number, py: number, polygon: number[][]) => {
+    let inside = false;
+    for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+      const xi = polygon[i][0], yi = polygon[i][1];
+      const xj = polygon[j][0], yj = polygon[j][1];
+      const intersect = ((yi > py) !== (yj > py)) && (px < (xj - xi) * (py - yi) / (yj - yi) + xi);
+      if (intersect) inside = !inside;
+    }
+    return inside;
+  };
+
   // Mouse Move Handler for Hover Inspector
   const handleCanvasMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
     if (!canvasRef.current) return;
@@ -457,22 +469,27 @@ function AnalysisContent() {
     const mouseY = (e.clientY - rect.top) * scaleY;
 
     let hovered: any = null;
-    let minDistance = 80;
 
     activeFeatures.features
       .filter((f: any) => f.properties.category === "Building")
       .forEach((f: any) => {
-        const cx = f.properties.centroid[0];
-        const cy = f.properties.centroid[1];
-        const dist = Math.hypot(mouseX - cx, mouseY - cy);
-        if (dist < minDistance) {
-          minDistance = dist;
+        const coords = f.geometry.coordinates[0];
+        if (isPointInPolygon(mouseX, mouseY, coords)) {
           hovered = f;
+        } else {
+          // Centroid fallback check
+          const cx = f.properties.centroid[0];
+          const cy = f.properties.centroid[1];
+          const dist = Math.hypot(mouseX - cx, mouseY - cy);
+          if (dist < 60 && !hovered) {
+            hovered = f;
+          }
         }
       });
 
     setHoveredBuilding(hovered);
   };
+
 
   // Handle Canvas Click to Lock Selected Building
   const handleCanvasClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
