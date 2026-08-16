@@ -45,7 +45,7 @@ def get_seg_model():
     global _seg_model
     if _seg_model is None:
         try:
-            if os.getenv("DISABLE_PYTORCH", "0") == "1":
+            if os.getenv("DISABLE_PYTORCH", "1") == "1":
                 from app.ml.demo_segmentation import DemoSegmentationModel
                 _seg_model = DemoSegmentationModel()
             else:
@@ -60,7 +60,7 @@ def get_roof_model():
     global _roof_model
     if _roof_model is None:
         try:
-            if os.getenv("DISABLE_PYTORCH", "0") == "1":
+            if os.getenv("DISABLE_PYTORCH", "1") == "1":
                 from app.ml.demo_roof_classifier import DemoRoofClassificationModel
                 _roof_model = DemoRoofClassificationModel()
             else:
@@ -70,6 +70,7 @@ def get_roof_model():
             from app.ml.demo_roof_classifier import DemoRoofClassificationModel
             _roof_model = DemoRoofClassificationModel()
     return _roof_model
+
 
 
 def process_analysis_job(analysis_id: str, db_session_factory):

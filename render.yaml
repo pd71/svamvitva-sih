@@ -15,6 +15,9 @@ services:
         value: holypreet/svamitva-unet-weights
       - key: HF_HUB_ENABLE
         value: "true"
+      - key: DISABLE_PYTORCH
+        value: "1"
       - key: HF_TOKEN
         sync: false
+
 
