@@ -38,8 +38,6 @@ class DemoRoofClassificationModel(RoofClassificationModel):
     Pure numpy/PIL — no OpenCV required.
     """
 
-DemoRoofClassifierModel = DemoRoofClassificationModel
-
     def __init__(self):
         self.is_loaded = True
 
@@ -89,3 +87,6 @@ DemoRoofClassifierModel = DemoRoofClassificationModel
         confidence = probs[predicted_class]
 
         return predicted_class, confidence, probs
+
+
+DemoRoofClassifierModel = DemoRoofClassificationModel
