@@ -1,8 +1,9 @@
 import os
-import cv2
 import numpy as np
+from PIL import Image
 from typing import Dict, Tuple
 from app.ml.base import SegmentationModel
+
 
 try:
     import torch
@@ -234,25 +235,28 @@ class PyTorchUNetSegmentationModel(SegmentationModel):
         # Class 0: Background, Class 1: Building, Class 2: Road, Class 3: Waterbody
         raw_pred_mask = np.argmax(probs, axis=0).astype(np.uint8)
 
-        # --- Color / Feature Guided Post-Processing Alignment ---
-        # Refine PyTorch raw predictions with color-edge bounds for clean vector output
-        hsv = cv2.cvtColor(cv2.cvtColor(image_rgb, cv2.COLOR_RGB2BGR), cv2.COLOR_BGR2HSV)
-        
-        # Water heuristic mask
-        water_hsv = cv2.inRange(hsv, np.array([85, 30, 30]), np.array([135, 255, 255]))
-        # Road heuristic mask
-        road_hsv = cv2.inRange(hsv, np.array([0, 0, 70]), np.array([180, 40, 200]))
-        # Building heuristic mask
-        bldg_hsv = cv2.inRange(hsv, np.array([0, 25, 40]), np.array([180, 255, 255]))
+        # --- Color / Feature Guided Post-Processing Alignment using numpy HSV ---
+        r = image_rgb[:, :, 0].astype(np.float32) / 255.0
+        g = image_rgb[:, :, 1].astype(np.float32) / 255.0
+        b = image_rgb[:, :, 2].astype(np.float32) / 255.0
+        cmax = np.maximum(np.maximum(r, g), b)
+        cmin = np.minimum(np.minimum(r, g), b)
+        diff = cmax - cmin + 1e-9
+        hh = np.zeros_like(r)
+        hh[cmax == r] = (60 * ((g[cmax == r] - b[cmax == r]) / diff[cmax == r]) % 360)
+        hh[cmax == g] = (60 * ((b[cmax == g] - r[cmax == g]) / diff[cmax == g]) + 120)
+        hh[cmax == b] = (60 * ((r[cmax == b] - g[cmax == b]) / diff[cmax == b]) + 240)
+        hh = hh / 2.0  # 0-180
+        ss = np.where(cmax == 0, 0.0, (diff / (cmax + 1e-9)) * 255.0)
+        vv = cmax * 255.0
 
-        # Synthesize final segmentation map
+        water_hsv = ((hh >= 85) & (hh <= 135) & (ss >= 30) & (vv >= 30)).astype(np.uint8)
+        road_hsv  = ((hh >= 0)  & (hh <= 180) & (ss <= 40) & (vv >= 70) & (vv <= 200)).astype(np.uint8)
+        bldg_hsv  = ((hh >= 0)  & (hh <= 180) & (ss >= 25) & (vv >= 40)).astype(np.uint8)
+
         final_mask = np.zeros((h, w), dtype=np.uint8)
-        
-        # Roads (Class 2)
         final_mask[road_hsv > 0] = 2
-        # Waterbodies (Class 3)
         final_mask[water_hsv > 0] = 3
-        # Buildings (Class 1)
         final_mask[(bldg_hsv > 0) & (water_hsv == 0) & (road_hsv == 0)] = 1
 
         confidence_maps = {
@@ -262,3 +266,4 @@ class PyTorchUNetSegmentationModel(SegmentationModel):
         }
 
         return final_mask, confidence_maps
+

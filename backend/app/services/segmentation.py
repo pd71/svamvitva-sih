@@ -1,4 +1,6 @@
-import cv2
+"""
+Segmentation pipeline — pure numpy implementation, no OpenCV dependency.
+"""
 import numpy as np
 from typing import List, Dict, Any, Tuple
 from app.ml.base import SegmentationModel
@@ -7,8 +9,44 @@ from app.services.gis import (
     contour_to_linestring_geojson,
     calculate_polygon_area,
     calculate_line_length,
-    calculate_centroid
+    calculate_centroid,
 )
+
+
+def _find_contours_numpy(mask: np.ndarray) -> List[np.ndarray]:
+    """
+    Lightweight pure-numpy connected-component contour finder.
+    Returns a list of Nx1x2 arrays (mimicking cv2 contour format).
+    """
+    from PIL import Image
+    # Label connected components
+    img = Image.fromarray(mask)
+    # Simple approach: find bounding boxes of connected regions via flood-fill labels
+    contours = []
+    visited = np.zeros_like(mask, dtype=bool)
+    h, w = mask.shape
+
+    for start_y in range(h):
+        for start_x in range(w):
+            if mask[start_y, start_x] == 0 or visited[start_y, start_x]:
+                continue
+            # BFS flood fill
+            region = []
+            stack = [(start_y, start_x)]
+            while stack:
+                cy, cx = stack.pop()
+                if cy < 0 or cy >= h or cx < 0 or cx >= w:
+                    continue
+                if visited[cy, cx] or mask[cy, cx] == 0:
+                    continue
+                visited[cy, cx] = True
+                region.append((cx, cy))
+                stack.extend([(cy+1, cx), (cy-1, cx), (cy, cx+1), (cy, cx-1)])
+            if len(region) > 10:
+                pts = np.array(region, dtype=np.int32).reshape(-1, 1, 2)
+                contours.append(pts)
+    return contours
+
 
 def run_segmentation_pipeline(
     image_rgb: np.ndarray,
@@ -18,7 +56,7 @@ def run_segmentation_pipeline(
     Executes AI segmentation on image_rgb.
     Extracts individual vector features: Buildings, Roads, Waterbodies.
     """
-    h, w, c = image_rgb.shape
+    h, w, _ = image_rgb.shape
     segmentation_mask, confidence_maps = model.predict_segmentation(image_rgb)
 
     buildings = []
@@ -27,35 +65,26 @@ def run_segmentation_pipeline(
 
     # --- Extract Building Polygons (Class 1) ---
     bldg_mask = np.uint8(segmentation_mask == 1) * 255
-    contours, _ = cv2.findContours(bldg_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    
-    bldg_idx = 1
-    for cnt in contours:
-        # Filter small noise artifacts
-        area_px = cv2.contourArea(cnt)
-        if area_px < 80:  # min 80 pixels
-            continue
-        
-        # Approximate polygon to straighten roof edges
-        epsilon = 0.02 * cv2.arcLength(cnt, True)
-        approx_cnt = cv2.approxPolyDP(cnt, epsilon, True)
-        if len(approx_cnt) < 3:
-            approx_cnt = cnt
+    bldg_contours = _find_contours_numpy(bldg_mask)
 
-        geojson = contour_to_polygon_geojson(approx_cnt, h, w)
+    bldg_idx = 1
+    for cnt in bldg_contours:
+        area_sqm = calculate_polygon_area(cnt)
+        if area_sqm < 5.0:
+            continue
+
+        geojson = contour_to_polygon_geojson(cnt, h, w)
         if not geojson:
             continue
 
-        area_sqm = calculate_polygon_area(approx_cnt)
-        cx, cy = calculate_centroid(approx_cnt)
-        
-        # Get bounding box crop for roof classification
-        x, y, bw, bh = cv2.boundingRect(approx_cnt)
-        
-        # Average confidence inside building contour
-        mask_cnt = np.zeros((h, w), dtype=np.uint8)
-        cv2.drawContours(mask_cnt, [cnt], -1, 255, -1)
-        cnt_conf = float(np.mean(confidence_maps["building"][mask_cnt > 0])) if np.any(mask_cnt > 0) else 0.85
+        cx, cy = calculate_centroid(cnt)
+        pts = cnt.reshape(-1, 2)
+        x1, y1 = pts[:, 0].min(), pts[:, 1].min()
+        x2, y2 = pts[:, 0].max(), pts[:, 1].max()
+
+        # Average confidence inside building region
+        mask_region = segmentation_mask == 1
+        cnt_conf = float(np.mean(confidence_maps["building"][mask_region])) if np.any(mask_region) else 0.85
 
         buildings.append({
             "building_index": bldg_idx,
@@ -63,7 +92,7 @@ def run_segmentation_pipeline(
             "area_sqm": area_sqm,
             "centroid_x": cx,
             "centroid_y": cy,
-            "bbox": (x, y, bw, bh),
+            "bbox": (int(x1), int(y1), int(x2 - x1), int(y2 - y1)),
             "confidence": round(cnt_conf, 3),
             "status": "detected"
         })
@@ -71,18 +100,18 @@ def run_segmentation_pipeline(
 
     # --- Extract Road Lines (Class 2) ---
     road_mask = np.uint8(segmentation_mask == 2) * 255
-    road_contours, _ = cv2.findContours(road_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    
+    road_contours = _find_contours_numpy(road_mask)
+
     road_idx = 1
     for cnt in road_contours:
-        if cv2.arcLength(cnt, False) < 40:
+        length_m = calculate_line_length(cnt)
+        if length_m < 5.0:
             continue
-        
+
         geojson = contour_to_linestring_geojson(cnt)
         if not geojson:
             continue
 
-        length_m = calculate_line_length(cnt)
         roads.append({
             "road_index": road_idx,
             "geometry_geojson": geojson,
@@ -93,18 +122,18 @@ def run_segmentation_pipeline(
 
     # --- Extract Waterbodies (Class 3) ---
     water_mask = np.uint8(segmentation_mask == 3) * 255
-    water_contours, _ = cv2.findContours(water_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    
+    water_contours = _find_contours_numpy(water_mask)
+
     water_idx = 1
     for cnt in water_contours:
-        if cv2.contourArea(cnt) < 150:
+        area_sqm = calculate_polygon_area(cnt)
+        if area_sqm < 10.0:
             continue
-        
+
         geojson = contour_to_polygon_geojson(cnt, h, w)
         if not geojson:
             continue
 
-        area_sqm = calculate_polygon_area(cnt)
         waterbodies.append({
             "waterbody_index": water_idx,
             "geometry_geojson": geojson,

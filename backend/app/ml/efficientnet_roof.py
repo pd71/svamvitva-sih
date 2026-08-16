@@ -1,7 +1,8 @@
-import cv2
 import numpy as np
+from PIL import Image
 from typing import Dict, Tuple
 from app.ml.base import RoofClassificationModel
+
 
 try:
     import torch
@@ -88,11 +89,13 @@ class PyTorchEfficientNetRoofModel(RoofClassificationModel):
             return "Other", 0.5, {c: 0.25 for c in self.CLASSES}
 
         try:
-            resized = cv2.resize(image_crop, (128, 128))
+            pil_crop = Image.fromarray(image_crop.astype(np.uint8)).resize((128, 128), Image.Resampling.LANCZOS)
+            resized = np.array(pil_crop)
             tensor = torch.from_numpy(resized.astype(np.float32) / 255.0).permute(2, 0, 1)
             mean = torch.tensor([0.485, 0.456, 0.406]).view(3, 1, 1)
             std = torch.tensor([0.229, 0.224, 0.225]).view(3, 1, 1)
             tensor = ((tensor - mean) / std).unsqueeze(0).to(self.device)
+
 
             with torch.no_grad():
                 logits = self.net(tensor)
