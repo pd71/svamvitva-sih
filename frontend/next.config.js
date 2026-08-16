@@ -2,8 +2,11 @@
 const nextConfig = {
   reactStrictMode: false,
   async rewrites() {
-    const rawUrl = process.env.NEXT_PUBLIC_API_URL || process.env.BACKEND_URL || 'http://localhost:8000';
-    const backendUrl = rawUrl.replace(/\/+$/, '');
+    const rawUrl = process.env.NEXT_PUBLIC_API_URL || process.env.BACKEND_URL || 'https://nerdvana-sih-backend.onrender.com';
+    let backendUrl = rawUrl.replace(/\/+$/, '');
+    if (backendUrl.endsWith('/api')) {
+      backendUrl = backendUrl.slice(0, -4);
+    }
     return [
       {
         source: '/api/:path*',
@@ -18,3 +21,4 @@ const nextConfig = {
 };
 
 module.exports = nextConfig;
+

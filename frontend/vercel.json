@@ -4,6 +4,6 @@
   "outputDirectory": ".next",
   "installCommand": "npm install",
   "env": {
-    "NEXT_PUBLIC_API_URL": "https://nerdvana-djsce-backend.vercel.app"
+    "NEXT_PUBLIC_API_URL": "https://nerdvana-sih-backend.onrender.com"
   }
 }
