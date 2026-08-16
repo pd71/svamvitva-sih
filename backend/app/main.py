@@ -6,7 +6,6 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
 
 import tempfile
-from urllib.parse import parse_qs
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -27,39 +26,6 @@ app = FastAPI(
     description="Backend API for Drone Orthophoto Feature Extraction, Multi-Class Segmentation, Roof Classification, GIS Analytics & Human Review",
     version="1.0.0"
 )
-
-class VercelPathMiddleware:
-    """
-    Middleware that parses the original requested URL from __url parameter or strips Vercel function prefixes.
-    """
-    def __init__(self, app):
-        self.app = app
-
-    async def __call__(self, scope, receive, send):
-        if scope["type"] == "http":
-            query_string = scope.get("query_string", b"").decode("utf-8")
-            parsed = parse_qs(query_string)
-            if "__url" in parsed and parsed["__url"]:
-                target = parsed["__url"][0]
-                if not target.startswith("/"):
-                    target = "/" + target
-                path = target.split("?")[0]
-            else:
-                path = scope.get("path", "/")
-                prefixes = ["/api/index.py", "/api/index"]
-                for prefix in prefixes:
-                    if path == prefix or path == prefix + "/":
-                        path = "/"
-                        break
-                    elif path.startswith(prefix + "/"):
-                        path = path[len(prefix):]
-                        break
-            path = path if path else "/"
-            scope["path"] = path
-            scope["raw_path"] = path.encode("utf-8")
-        await self.app(scope, receive, send)
-
-app.add_middleware(VercelPathMiddleware)
 
 # Enable CORS for Next.js / Vite frontend
 app.add_middleware(
