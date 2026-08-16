@@ -87,6 +87,13 @@ def root():
         "docs_url": "/docs"
     }
 
+@app.api_route("/{full_path:path}", methods=["GET", "POST", "PUT", "DELETE"])
+def catch_all(full_path: str):
+    return {
+        "debug_notice": "Catch All Route Inspector",
+        "full_path": full_path
+    }
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=True)
