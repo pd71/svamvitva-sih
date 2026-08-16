@@ -2,7 +2,7 @@
 const nextConfig = {
   reactStrictMode: false,
   async rewrites() {
-    const backendUrl = process.env.NEXT_PUBLIC_API_URL || process.env.BACKEND_URL || 'http://localhost:8000';
+    const backendUrl = process.env.NEXT_PUBLIC_API_URL || process.env.BACKEND_URL || 'https://nerdvana-djsce-backend.vercel.app';
     return [
       {
         source: '/api/:path*',
@@ -17,4 +17,3 @@ const nextConfig = {
 };
 
 module.exports = nextConfig;
-

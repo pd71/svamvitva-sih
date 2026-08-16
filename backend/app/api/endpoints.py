@@ -242,11 +242,16 @@ def load_demo_village(background_tasks: BackgroundTasks, db: Session = Depends(g
     db.commit()
     db.refresh(analysis)
 
-    # Launch processing background task
+    # Launch processing task (synchronous on Vercel serverless to guarantee completion before context teardown)
     from app.database.db import SessionLocal
-    background_tasks.add_task(process_analysis_job, analysis_id, SessionLocal)
+    if os.getenv("VERCEL"):
+        process_analysis_job(analysis_id, SessionLocal)
+        db.refresh(analysis)
+    else:
+        background_tasks.add_task(process_analysis_job, analysis_id, SessionLocal)
 
     return AnalysisSchema.from_orm(analysis)
+
 
 
 @router.post("/analysis/upload")
@@ -287,9 +292,14 @@ def upload_orthophoto(
     db.refresh(analysis)
 
     from app.database.db import SessionLocal
-    background_tasks.add_task(process_analysis_job, analysis_id, SessionLocal)
+    if os.getenv("VERCEL"):
+        process_analysis_job(analysis_id, SessionLocal)
+        db.refresh(analysis)
+    else:
+        background_tasks.add_task(process_analysis_job, analysis_id, SessionLocal)
 
     return AnalysisSchema.from_orm(analysis)
+
 
 
 @router.post("/analysis/{analysis_id}/process")
