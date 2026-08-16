@@ -14,9 +14,6 @@ def generate_sample_village_orthophoto(output_path: str = "sample_data/demo_vill
     except Exception:
         pass
 
-    if os.path.exists(output_path):
-        return output_path
-
     width, height = 1024, 1024
 
     # Base landscape — lush green fields
