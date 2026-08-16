@@ -15,10 +15,22 @@ from app.services.gis import (
 
 def _find_contours_numpy(mask: np.ndarray) -> List[np.ndarray]:
     """
-    Fast vectorized connected-component contour finder.
-    Returns a list of Nx1x2 arrays (mimicking cv2 contour format).
-    Runs in <15ms to prevent serverless function timeouts.
+    Extracts smooth connected contours for buildings, roads, and waterbodies.
+    Prefers cv2.findContours for exact boundary polygons.
+    Falls back to scipy.ndimage connected components.
     """
+    try:
+        import cv2
+        contours, _ = cv2.findContours(mask.astype(np.uint8), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        valid_contours = []
+        for cnt in contours:
+            if cv2.contourArea(cnt) >= 100:
+                valid_contours.append(cnt)
+        if valid_contours:
+            return valid_contours
+    except Exception:
+        pass
+
     try:
         from scipy.ndimage import label, find_objects
         labeled, num_features = label(mask > 0)
@@ -30,7 +42,7 @@ def _find_contours_numpy(mask: np.ndarray) -> List[np.ndarray]:
             sy, sx = sl
             min_y, max_y = sy.start, sy.stop
             min_x, max_x = sx.start, sx.stop
-            if (max_x - min_x) < 20 or (max_y - min_y) < 20:
+            if (max_x - min_x) < 15 or (max_y - min_y) < 15:
                 continue
             pts = np.array([
                 [min_x, min_y],
@@ -41,16 +53,30 @@ def _find_contours_numpy(mask: np.ndarray) -> List[np.ndarray]:
             contours.append(pts)
         return contours
     except Exception:
-        # Pure numpy fallback
+        # Connected region bounding polygon fallback (no 16x16 subgrid breakdown)
         contours = []
         h, w = mask.shape
-        step = 16
-        for y in range(0, h, step):
-            for x in range(0, w, step):
-                if np.any(mask[y:y+step, x:x+step]):
-                    pts = np.array([[x, y], [x+step, y], [x+step, y+step], [x, y+step]], dtype=np.int32).reshape(-1, 1, 2)
-                    contours.append(pts)
+        visited = np.zeros((h, w), dtype=bool)
+        for y in range(0, h, 20):
+            for x in range(0, w, 20):
+                if mask[y, x] > 0 and not visited[y, x]:
+                    y1, y2 = max(0, y-40), min(h, y+60)
+                    x1, x2 = max(0, x-40), min(w, x+60)
+                    sub = mask[y1:y2, x1:x2]
+                    y_idx, x_idx = np.where(sub > 0)
+                    if len(y_idx) > 30:
+                        min_y_r, max_y_r = y1 + int(y_idx.min()), y1 + int(y_idx.max())
+                        min_x_r, max_x_r = x1 + int(x_idx.min()), x1 + int(x_idx.max())
+                        visited[min_y_r:max_y_r, min_x_r:max_x_r] = True
+                        pts = np.array([
+                            [min_x_r, min_y_r],
+                            [max_x_r, min_y_r],
+                            [max_x_r, max_y_r],
+                            [min_x_r, max_y_r]
+                        ], dtype=np.int32).reshape(-1, 1, 2)
+                        contours.append(pts)
         return contours
+
 
 
 def run_segmentation_pipeline(
