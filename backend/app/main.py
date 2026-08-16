@@ -1,4 +1,10 @@
+import sys
 import os
+
+# Ensure backend root directory is in Python path for Vercel Serverless execution
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
+
 import tempfile
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
