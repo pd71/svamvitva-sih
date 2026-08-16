@@ -12,7 +12,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 
 COPY requirements.txt .
+RUN pip install --no-cache-dir torch torchvision --index-url https://download.pytorch.org/whl/cpu
 RUN pip install --no-cache-dir -r requirements.txt
+
 
 # Create writable directories for uploads and model weight caching
 RUN mkdir -p /app/uploaded_images /app/app/ml/weights /app/svamitva_dataset_repository

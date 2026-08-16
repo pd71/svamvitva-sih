@@ -295,5 +295,9 @@ class PyTorchUNetSegmentationModel(SegmentationModel):
             "waterbody": probs[3]
         }
 
+        import gc
+        gc.collect()
+
         return final_mask, confidence_maps
+
 
