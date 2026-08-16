@@ -12,15 +12,15 @@ class VercelDebugMiddleware:
 
     async def __call__(self, scope, receive, send):
         if scope["type"] == "http":
-            headers_dict = {k.decode('latin1'): v.decode('latin1') for k, v in scope.get("headers", [])}
-            info = {
-                "path": scope.get("path"),
-                "raw_path": scope.get("raw_path", b"").decode('latin1'),
-                "query_string": scope.get("query_string", b"").decode('latin1'),
-                "headers": headers_dict
-            }
-            # If path ends with /scope_info
-            if scope.get("path", "").endswith("/scope_info"):
+            query_string = scope.get("query_string", b"").decode('latin1')
+            if "debug=1" in query_string:
+                headers_dict = {k.decode('latin1'): v.decode('latin1') for k, v in scope.get("headers", [])}
+                info = {
+                    "path": scope.get("path"),
+                    "raw_path": scope.get("raw_path", b"").decode('latin1'),
+                    "query_string": query_string,
+                    "headers": headers_dict
+                }
                 await send({
                     'type': 'http.response.start',
                     'status': 200,
