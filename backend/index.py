@@ -1,10 +1,12 @@
 import sys
 import os
 
-# Ensure backend directory is in sys.path
+# Ensure backend root directory is in Python path
 sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
 
 from app.main import app
+from mangum import Mangum
 
-# Export app for Vercel ASGI serverless handler
+# Vercel Serverless ASGI Handler
+handler = Mangum(app)
 app = app
