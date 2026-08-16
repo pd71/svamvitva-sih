@@ -17,20 +17,24 @@ class VercelPathFixMiddleware:
 
     async def __call__(self, scope, receive, send):
         if scope["type"] == "http":
+            path = scope.get("path", "/")
             headers = dict(scope.get("headers", []))
-            orig_path = (
-                headers.get(b"x-matched-path", b"") or
-                headers.get(b"x-forwarded-uri", b"") or
-                headers.get(b"x-original-url", b"") or
-                headers.get(b"x-rewrite-url", b"")
-            ).decode("utf-8")
 
-            if orig_path:
-                orig_path = orig_path.split("?")[0]
-                scope["path"] = orig_path
-            elif scope["path"].startswith("/api/index"):
-                sub = scope["path"][len("/api/index"):]
-                scope["path"] = sub if sub else "/"
+            for header_name in [b"x-forwarded-uri", b"x-original-url", b"x-rewrite-url", b"x-matched-path"]:
+                val = headers.get(header_name, b"").decode("utf-8")
+                if val:
+                    path = val.split("?")[0]
+                    break
+
+            for prefix in ["/api/index.py", "/api/index", "/index.py", "/index"]:
+                if path == prefix or path == prefix + "/":
+                    path = "/"
+                    break
+                elif path.startswith(prefix + "/"):
+                    path = path[len(prefix):]
+                    break
+
+            scope["path"] = path if path else "/"
 
         await self.app(scope, receive, send)
 
