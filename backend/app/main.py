@@ -75,13 +75,6 @@ def startup_event():
         print(f"Startup demo generation notice: {e}")
 
 @app.get("/")
-@app.get("/api")
-@app.get("/main.py")
-@app.get("/main.py/")
-@app.get("/api/index.py")
-@app.get("/api/index.py/")
-@app.get("/api/index")
-@app.get("/api/index/")
 def root():
     return {
         "service": "SVAMITVA AI Feature Extraction Platform Backend",
