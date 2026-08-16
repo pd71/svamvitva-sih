@@ -44,14 +44,33 @@ _roof_model = None
 def get_seg_model():
     global _seg_model
     if _seg_model is None:
-        _seg_model = PyTorchUNetSegmentationModel()
+        try:
+            if os.getenv("DISABLE_PYTORCH", "0") == "1":
+                from app.ml.demo_segmentation import DemoSegmentationModel
+                _seg_model = DemoSegmentationModel()
+            else:
+                _seg_model = PyTorchUNetSegmentationModel()
+        except Exception as e:
+            print(f"PyTorch U-Net initialization notice: {e}. Using CV engine.")
+            from app.ml.demo_segmentation import DemoSegmentationModel
+            _seg_model = DemoSegmentationModel()
     return _seg_model
 
 def get_roof_model():
     global _roof_model
     if _roof_model is None:
-        _roof_model = PyTorchEfficientNetRoofModel()
+        try:
+            if os.getenv("DISABLE_PYTORCH", "0") == "1":
+                from app.ml.demo_roof_classifier import DemoRoofClassificationModel
+                _roof_model = DemoRoofClassificationModel()
+            else:
+                _roof_model = PyTorchEfficientNetRoofModel()
+        except Exception as e:
+            print(f"PyTorch EfficientNet initialization notice: {e}. Using CV engine.")
+            from app.ml.demo_roof_classifier import DemoRoofClassificationModel
+            _roof_model = DemoRoofClassificationModel()
     return _roof_model
+
 
 def process_analysis_job(analysis_id: str, db_session_factory):
     """
