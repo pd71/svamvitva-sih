@@ -1,37 +1,34 @@
 import sys
 import os
-import json
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from app.main import app as fastapi_app
 
-class VercelDebugMiddleware:
+class VercelPathFixMiddleware:
+    """
+    Middleware to fix Vercel rewrite pathing for FastAPI.
+    When Vercel rewrites requests to /api/index, it sets scope['path'] = '/api/index'.
+    This middleware restores the original requested path from Vercel headers (x-forwarded-uri or x-matched-path).
+    """
     def __init__(self, app):
         self.app = app
 
     async def __call__(self, scope, receive, send):
         if scope["type"] == "http":
-            query_string = scope.get("query_string", b"").decode('latin1')
-            if "debug=1" in query_string:
-                headers_dict = {k.decode('latin1'): v.decode('latin1') for k, v in scope.get("headers", [])}
-                info = {
-                    "path": scope.get("path"),
-                    "raw_path": scope.get("raw_path", b"").decode('latin1'),
-                    "query_string": query_string,
-                    "headers": headers_dict
-                }
-                await send({
-                    'type': 'http.response.start',
-                    'status': 200,
-                    'headers': [(b'content-type', b'application/json')]
-                })
-                await send({
-                    'type': 'http.response.body',
-                    'body': json.dumps(info, indent=2).encode('utf-8')
-                })
-                return
+            headers = dict(scope.get("headers", []))
+            
+            # Check headers for original requested path
+            forwarded_uri = headers.get(b"x-forwarded-uri", b"").decode("utf-8")
+            matched_path  = headers.get(b"x-matched-path", b"").decode("utf-8")
+            original_url  = headers.get(b"x-original-url", b"").decode("utf-8")
+
+            orig = forwarded_uri or original_url or matched_path
+            if orig and orig != "/api/index" and orig != "/api/index.py":
+                scope["path"] = orig.split("?")[0]
+            elif scope.get("path") in ["/api/index", "/api/index.py", "/api"]:
+                scope["path"] = "/"
 
         await self.app(scope, receive, send)
 
-app = VercelDebugMiddleware(fastapi_app)
+app = VercelPathFixMiddleware(fastapi_app)
