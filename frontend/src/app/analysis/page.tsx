@@ -74,16 +74,25 @@ function AnalysisContent() {
     fetchAnalysisDetail(analysisId);
 
     const interval = setInterval(async () => {
-      const res = await fetch(`/api/analysis/${analysisId}/status`);
-      if (res.ok) {
-        const statusData = await res.json();
-        setAnalysis((prev: any) => ({ ...prev, ...statusData }));
-        if (statusData.status === "completed") {
-          fetchAnalysisDetail(analysisId);
+      try {
+        const res = await fetch(`/api/analysis/${analysisId}/status`);
+        if (res.ok) {
+          const statusData = await res.json();
+          setAnalysis((prev: any) => ({ ...prev, ...statusData }));
+          if (statusData.status === "completed") {
+            fetchAnalysisDetail(analysisId);
+            clearInterval(interval);
+          }
+        } else if (res.status === 404) {
           clearInterval(interval);
+          setAnalysis(null);
+          setAnalysisId(null);
         }
+      } catch (e) {
+        console.error("Status check polling notice:", e);
       }
     }, 1500);
+
 
     return () => clearInterval(interval);
   }, [analysisId]);
