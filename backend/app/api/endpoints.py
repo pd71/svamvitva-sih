@@ -23,8 +23,18 @@ from app.sample_data.generator import generate_sample_village_orthophoto
 
 router = APIRouter(prefix="/api")
 
-UPLOAD_DIR = os.path.abspath("./uploaded_images")
-os.makedirs(UPLOAD_DIR, exist_ok=True)
+import tempfile
+
+if os.getenv("VERCEL"):
+    UPLOAD_DIR = os.path.join(tempfile.gettempdir(), "uploaded_images")
+else:
+    UPLOAD_DIR = os.path.abspath("./uploaded_images")
+
+try:
+    os.makedirs(UPLOAD_DIR, exist_ok=True)
+except Exception:
+    pass
+
 
 # Mandatory PyTorch CNN Model Instances (CPU & CUDA Ready)
 seg_model = PyTorchUNetSegmentationModel()
