@@ -120,6 +120,8 @@ class PyTorchUNetSegmentationModel(SegmentationModel):
             print("PyTorch not installed in environment, using lightweight CV engine.")
             return
 
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
         if os.getenv("VERCEL"):
             import tempfile
             default_weights = os.path.join(tempfile.gettempdir(), "unet_svamitva_building_best.pth")
@@ -127,6 +129,7 @@ class PyTorchUNetSegmentationModel(SegmentationModel):
             default_weights = os.path.abspath("./app/ml/weights/unet_svamitva_building_best.pth")
 
         target_weights = weights_path if (weights_path and os.path.exists(weights_path)) else default_weights
+
 
 
         self.is_binary = True

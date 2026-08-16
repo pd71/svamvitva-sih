@@ -1,12 +1,10 @@
 import os
-import tempfile
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
 if os.getenv("VERCEL"):
-    tmp_db_path = os.path.join(tempfile.gettempdir(), "svamitva_drone.db")
-    default_db = f"sqlite:///{tmp_db_path}"
+    default_db = "sqlite:///:memory:"
 else:
     default_db = "sqlite:///./svamitva_drone.db"
 
