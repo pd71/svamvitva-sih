@@ -221,20 +221,31 @@ class PyTorchUNetSegmentationModel(SegmentationModel):
         h, w, _ = image_rgb.shape
 
 
-        # Normalize image to float32 tensor [1, 3, H, W]
-        img_normalized = image_rgb.astype(np.float32) / 255.0
+        # Resize large orthophotos (e.g. 1024x1024) to 512x512 for ultra-fast CPU forward pass
+        target_h, target_w = (512, 512) if (h > 512 or w > 512) else (h, w)
+        if target_h != h or target_w != w:
+            img_pil = Image.fromarray(image_rgb).resize((target_w, target_h), Image.Resampling.BILINEAR)
+            img_normalized = np.array(img_pil).astype(np.float32) / 255.0
+        else:
+            img_normalized = image_rgb.astype(np.float32) / 255.0
+
         # Transpose HWC -> CHW
         img_tensor = torch.from_numpy(img_normalized).permute(2, 0, 1).unsqueeze(0).to(self.device)
 
         # Pad image to be divisible by 16 for U-Net pooling
-        pad_h = (16 - (h % 16)) % 16
-        pad_w = (16 - (w % 16)) % 16
+        pad_h = (16 - (target_h % 16)) % 16
+        pad_w = (16 - (target_w % 16)) % 16
         if pad_h > 0 or pad_w > 0:
             img_tensor = F.pad(img_tensor, (0, pad_w, 0, pad_h), mode='reflect')
 
         with torch.no_grad():
             logits = self.net(img_tensor)
-            logits = logits[:, :, :h, :w]
+            logits = logits[:, :, :target_h, :target_w]
+
+            # Upscale logits back to original image resolution (H, W) if resized
+            if target_h != h or target_w != w:
+                logits = F.interpolate(logits, size=(h, w), mode='bilinear', align_corners=True)
+
             
             if self.is_binary:
                 probs = torch.sigmoid(logits).squeeze().cpu().numpy() # (H, W)
