@@ -218,86 +218,91 @@ class PyTorchUNetSegmentationModel(SegmentationModel):
             from app.ml.demo_segmentation import DemoSegmentationModel
             return DemoSegmentationModel().predict_segmentation(image_rgb)
 
-        h, w, _ = image_rgb.shape
+        try:
+            h, w, _ = image_rgb.shape
 
-
-        # Resize large orthophotos (e.g. 1024x1024) to 512x512 for ultra-fast CPU forward pass
-        target_h, target_w = (512, 512) if (h > 512 or w > 512) else (h, w)
-        if target_h != h or target_w != w:
-            img_pil = Image.fromarray(image_rgb).resize((target_w, target_h), Image.Resampling.BILINEAR)
-            img_normalized = np.array(img_pil).astype(np.float32) / 255.0
-        else:
-            img_normalized = image_rgb.astype(np.float32) / 255.0
-
-        # Transpose HWC -> CHW
-        img_tensor = torch.from_numpy(img_normalized).permute(2, 0, 1).unsqueeze(0).to(self.device)
-
-        # Pad image to be divisible by 16 for U-Net pooling
-        pad_h = (16 - (target_h % 16)) % 16
-        pad_w = (16 - (target_w % 16)) % 16
-        if pad_h > 0 or pad_w > 0:
-            img_tensor = F.pad(img_tensor, (0, pad_w, 0, pad_h), mode='reflect')
-
-        with torch.no_grad():
-            logits = self.net(img_tensor)
-            logits = logits[:, :, :target_h, :target_w]
-
-            # Upscale logits back to original image resolution (H, W) if resized
+            # Resize large orthophotos (e.g. 1024x1024) to 512x512 for ultra-fast CPU forward pass
+            target_h, target_w = (512, 512) if (h > 512 or w > 512) else (h, w)
             if target_h != h or target_w != w:
-                logits = F.interpolate(logits, size=(h, w), mode='bilinear', align_corners=True)
-
-            
-            if self.is_binary:
-                probs = torch.sigmoid(logits).squeeze().cpu().numpy() # (H, W)
-                final_mask = np.zeros((h, w), dtype=np.uint8)
-                final_mask[probs > 0.5] = 1 # Class 1: Building Footprint
-                
-                confidence_maps = {
-                    "building": probs,
-                    "road": np.zeros((h, w), dtype=np.float32),
-                    "waterbody": np.zeros((h, w), dtype=np.float32)
-                }
-                return final_mask, confidence_maps
+                img_pil = Image.fromarray(image_rgb).resize((target_w, target_h), Image.Resampling.BILINEAR)
+                img_normalized = np.array(img_pil).astype(np.float32) / 255.0
             else:
-                probs = F.softmax(logits, dim=1).squeeze(0).cpu().numpy() # (4, H, W)
+                img_normalized = image_rgb.astype(np.float32) / 255.0
 
-        # PyTorch class map (Argmax over 4 classes)
-        # Class 0: Background, Class 1: Building, Class 2: Road, Class 3: Waterbody
-        raw_pred_mask = np.argmax(probs, axis=0).astype(np.uint8)
+            # Transpose HWC -> CHW
+            img_tensor = torch.from_numpy(img_normalized).permute(2, 0, 1).unsqueeze(0).to(self.device)
 
-        # --- Color / Feature Guided Post-Processing Alignment using numpy HSV ---
-        r = image_rgb[:, :, 0].astype(np.float32) / 255.0
-        g = image_rgb[:, :, 1].astype(np.float32) / 255.0
-        b = image_rgb[:, :, 2].astype(np.float32) / 255.0
-        cmax = np.maximum(np.maximum(r, g), b)
-        cmin = np.minimum(np.minimum(r, g), b)
-        diff = cmax - cmin + 1e-9
-        hh = np.zeros_like(r)
-        hh[cmax == r] = (60 * ((g[cmax == r] - b[cmax == r]) / diff[cmax == r]) % 360)
-        hh[cmax == g] = (60 * ((b[cmax == g] - r[cmax == g]) / diff[cmax == g]) + 120)
-        hh[cmax == b] = (60 * ((r[cmax == b] - g[cmax == b]) / diff[cmax == b]) + 240)
-        hh = hh / 2.0  # 0-180
-        ss = np.where(cmax == 0, 0.0, (diff / (cmax + 1e-9)) * 255.0)
-        vv = cmax * 255.0
+            # Pad image to be divisible by 16 for U-Net pooling
+            pad_h = (16 - (target_h % 16)) % 16
+            pad_w = (16 - (target_w % 16)) % 16
+            if pad_h > 0 or pad_w > 0:
+                img_tensor = F.pad(img_tensor, (0, pad_w, 0, pad_h), mode='reflect')
 
-        water_hsv = ((hh >= 85) & (hh <= 135) & (ss >= 30) & (vv >= 30)).astype(np.uint8)
-        road_hsv  = ((hh >= 0)  & (hh <= 180) & (ss <= 40) & (vv >= 70) & (vv <= 200)).astype(np.uint8)
-        bldg_hsv  = ((hh >= 0)  & (hh <= 180) & (ss >= 25) & (vv >= 40)).astype(np.uint8)
 
-        final_mask = np.zeros((h, w), dtype=np.uint8)
-        final_mask[road_hsv > 0] = 2
-        final_mask[water_hsv > 0] = 3
-        final_mask[(bldg_hsv > 0) & (water_hsv == 0) & (road_hsv == 0)] = 1
+            with torch.no_grad():
+                logits = self.net(img_tensor)
+                logits = logits[:, :, :target_h, :target_w]
 
-        confidence_maps = {
-            "building": probs[1],
-            "road": probs[2],
-            "waterbody": probs[3]
-        }
+                # Upscale logits back to original image resolution (H, W) if resized
+                if target_h != h or target_w != w:
+                    logits = F.interpolate(logits, size=(h, w), mode='bilinear', align_corners=True)
 
-        import gc
-        gc.collect()
+                if self.is_binary:
+                    probs = torch.sigmoid(logits).squeeze().cpu().numpy() # (H, W)
+                    final_mask = np.zeros((h, w), dtype=np.uint8)
+                    final_mask[probs > 0.5] = 1 # Class 1: Building Footprint
+                    
+                    confidence_maps = {
+                        "building": probs,
+                        "road": np.zeros((h, w), dtype=np.float32),
+                        "waterbody": np.zeros((h, w), dtype=np.float32)
+                    }
+                    return final_mask, confidence_maps
+                else:
+                    probs = F.softmax(logits, dim=1).squeeze(0).cpu().numpy() # (4, H, W)
 
-        return final_mask, confidence_maps
+            # PyTorch class map (Argmax over 4 classes)
+            # Class 0: Background, Class 1: Building, Class 2: Road, Class 3: Waterbody
+            raw_pred_mask = np.argmax(probs, axis=0).astype(np.uint8)
+
+            # --- Color / Feature Guided Post-Processing Alignment using numpy HSV ---
+            r = image_rgb[:, :, 0].astype(np.float32) / 255.0
+            g = image_rgb[:, :, 1].astype(np.float32) / 255.0
+            b = image_rgb[:, :, 2].astype(np.float32) / 255.0
+            cmax = np.maximum(np.maximum(r, g), b)
+            cmin = np.minimum(np.minimum(r, g), b)
+            diff = cmax - cmin + 1e-9
+            hh = np.zeros_like(r)
+            hh[cmax == r] = (60 * ((g[cmax == r] - b[cmax == r]) / diff[cmax == r]) % 360)
+            hh[cmax == g] = (60 * ((b[cmax == g] - r[cmax == g]) / diff[cmax == g]) + 120)
+            hh[cmax == b] = (60 * ((r[cmax == b] - g[cmax == b]) / diff[cmax == b]) + 240)
+            hh = hh / 2.0  # 0-180
+            ss = np.where(cmax == 0, 0.0, (diff / (cmax + 1e-9)) * 255.0)
+            vv = cmax * 255.0
+
+            water_hsv = ((hh >= 85) & (hh <= 135) & (ss >= 30) & (vv >= 30)).astype(np.uint8)
+            road_hsv  = ((hh >= 0)  & (hh <= 180) & (ss <= 40) & (vv >= 70) & (vv <= 200)).astype(np.uint8)
+            bldg_hsv  = ((hh >= 0)  & (hh <= 180) & (ss >= 25) & (vv >= 40)).astype(np.uint8)
+
+            final_mask = np.zeros((h, w), dtype=np.uint8)
+            final_mask[road_hsv > 0] = 2
+            final_mask[water_hsv > 0] = 3
+            final_mask[(bldg_hsv > 0) & (water_hsv == 0) & (road_hsv == 0)] = 1
+
+            confidence_maps = {
+                "building": probs[1],
+                "road": probs[2],
+                "waterbody": probs[3]
+            }
+
+            import gc
+            gc.collect()
+            return final_mask, confidence_maps
+        except Exception as err:
+            print(f"PyTorch U-Net inference exception notice: {err}. Falling back to prototype CV engine.")
+            from app.ml.demo_segmentation import DemoSegmentationModel
+            return DemoSegmentationModel().predict_segmentation(image_rgb)
+
+
 
 
