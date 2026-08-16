@@ -36,8 +36,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Include API endpoints
-app.include_router(api_router)
+# Mount API endpoints under all possible Vercel serverless path variations
+app.include_router(api_router, prefix="")
+app.include_router(api_router, prefix="/api")
+app.include_router(api_router, prefix="/api/index.py")
+app.include_router(api_router, prefix="/api/index.py/api")
+app.include_router(api_router, prefix="/api/index")
+app.include_router(api_router, prefix="/api/index/api")
 
 # Serve uploaded static media files safely
 if os.getenv("VERCEL"):
@@ -68,6 +73,11 @@ def startup_event():
         print(f"Startup demo generation notice: {e}")
 
 @app.get("/")
+@app.get("/api")
+@app.get("/api/index.py")
+@app.get("/api/index.py/")
+@app.get("/api/index")
+@app.get("/api/index/")
 def root():
     return {
         "service": "SVAMITVA AI Feature Extraction Platform Backend",

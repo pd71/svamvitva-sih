@@ -21,7 +21,8 @@ from app.services.change_detection import run_prototype_change_detection
 from app.services.report import generate_analysis_pdf_report, generate_analysis_csv_export
 from app.sample_data.generator import generate_sample_village_orthophoto
 
-router = APIRouter(prefix="/api")
+router = APIRouter()
+
 
 import tempfile
 
