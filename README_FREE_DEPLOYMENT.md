@@ -44,8 +44,12 @@ This guide shows you how to deploy the **entire SVAMITVA AI Platform** completel
    - **Build Command**: `pip install -r requirements.txt`
    - **Start Command**: `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
    - **Instance Type**: **Free ($0/month)**
+   - **Environment Variables** *(Optional)*:
+     - `PYTHON_VERSION`: `3.11.0`
+     - `DATABASE_URL`: `sqlite:///./svamitva_drone.db` *(Defaults automatically if left blank)*
 6. Click **Create Web Service**.
 7. Once deployed, copy your live backend URL (e.g. `https://svamitva-ai-backend.onrender.com`).
+
 
 ---
 
