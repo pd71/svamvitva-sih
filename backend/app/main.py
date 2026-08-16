@@ -1,4 +1,5 @@
 import os
+import tempfile
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -8,8 +9,11 @@ from app.api.endpoints import router as api_router
 from app.sample_data.generator import generate_sample_village_orthophoto
 from app.database.models import Analysis
 
-# Create database tables
-Base.metadata.create_all(bind=engine)
+# Create database tables safely
+try:
+    Base.metadata.create_all(bind=engine)
+except Exception as db_err:
+    print(f"Database table creation notice: {db_err}")
 
 app = FastAPI(
     title="SVAMITVA AI Feature Extraction API",
@@ -29,16 +33,18 @@ app.add_middleware(
 # Include API endpoints
 app.include_router(api_router)
 
-import tempfile
-
-# Serve uploaded static media files
+# Serve uploaded static media files safely
 if os.getenv("VERCEL"):
     UPLOAD_DIR = os.path.join(tempfile.gettempdir(), "uploaded_images")
 else:
     UPLOAD_DIR = os.path.abspath("./uploaded_images")
 
 os.makedirs(UPLOAD_DIR, exist_ok=True)
-app.mount("/static", StaticFiles(directory=UPLOAD_DIR), name="static")
+
+try:
+    app.mount("/static", StaticFiles(directory=UPLOAD_DIR), name="static")
+except Exception as static_err:
+    print(f"Static files mount notice: {static_err}")
 
 @app.on_event("startup")
 def startup_event():
@@ -50,7 +56,6 @@ def startup_event():
         generate_sample_village_orthophoto(sample_file)
     except Exception as e:
         print(f"Startup demo generation notice: {e}")
-
 
 @app.get("/")
 def root():
