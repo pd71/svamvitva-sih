@@ -145,11 +145,13 @@ class PyTorchUNetSegmentationModel(SegmentationModel):
             try:
                 from huggingface_hub import hf_hub_download
                 print(f"Downloading U-Net model from HF Hub ({repo_id}/{filename})...")
-                downloaded_file = hf_hub_download(repo_id=repo_id, filename=filename)
+                hf_token = os.getenv("HF_TOKEN", None)
+                downloaded_file = hf_hub_download(repo_id=repo_id, filename=filename, token=hf_token)
                 import shutil
                 shutil.copy(downloaded_file, target_weights)
                 dl_success = True
                 print(f"Successfully cached Hugging Face weights to {target_weights}")
+
             except Exception as hf_err:
                 print(f"huggingface_hub download attempt notice: {hf_err}")
 
