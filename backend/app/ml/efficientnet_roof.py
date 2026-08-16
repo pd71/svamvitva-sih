@@ -2,10 +2,15 @@ import cv2
 import numpy as np
 import torch
 import torch.nn as nn
-import torchvision.models as models
-import torchvision.transforms as transforms
 from typing import Dict, Tuple
 from app.ml.base import RoofClassificationModel
+
+try:
+    import torchvision.models as models
+    import torchvision.transforms as transforms
+    HAS_TORCHVISION = True
+except ImportError:
+    HAS_TORCHVISION = False
 
 class PyTorchEfficientNetRoofModel(RoofClassificationModel):
     """
@@ -19,20 +24,32 @@ class PyTorchEfficientNetRoofModel(RoofClassificationModel):
     def __init__(self, weights_path: str = None):
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         
-        # Load EfficientNet-B0 backbone with custom 4-class classifier linear head
-        self.net = models.efficientnet_b0(weights=None)
-        in_features = self.net.classifier[1].in_features
-        self.net.classifier[1] = nn.Linear(in_features, len(self.CLASSES))
+        if HAS_TORCHVISION:
+            self.net = models.efficientnet_b0(weights=None)
+            in_features = self.net.classifier[1].in_features
+            self.net.classifier[1] = nn.Linear(in_features, len(self.CLASSES))
+        else:
+            # Lightweight custom CNN fallback head
+            self.net = nn.Sequential(
+                nn.Conv2d(3, 32, kernel_size=3, padding=1),
+                nn.BatchNorm2d(32),
+                nn.ReLU(),
+                nn.AdaptiveAvgPool2d((1, 1)),
+                nn.Flatten(),
+                nn.Linear(32, len(self.CLASSES))
+            )
         self.net.to(self.device)
         self.net.eval()
         
         self.weights_loaded = False
 
-        self.transform = transforms.Compose([
-            transforms.ToTensor(),
-            transforms.Resize((128, 128)),
-            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
-        ])
+    def transform_image(self, image_crop: np.ndarray) -> torch.Tensor:
+        resized = cv2.resize(image_crop, (128, 128))
+        tensor = torch.from_numpy(resized.astype(np.float32) / 255.0).permute(2, 0, 1)
+        mean = torch.tensor([0.485, 0.456, 0.406]).view(3, 1, 1)
+        std = torch.tensor([0.229, 0.224, 0.225]).view(3, 1, 1)
+        return (tensor - mean) / std
+
 
         if weights_path:
             self.load_model(weights_path)
