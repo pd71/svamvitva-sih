@@ -48,3 +48,6 @@ backend/svamitva_dataset_repository/
 *.pth
 *.tar.gz
 
+
+.vercel
+.env*

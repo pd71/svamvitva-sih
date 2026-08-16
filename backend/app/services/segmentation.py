@@ -24,12 +24,13 @@ def _find_contours_numpy(mask: np.ndarray) -> List[np.ndarray]:
         labeled, num_features = label(mask > 0)
         slices = find_objects(labeled)
         contours = []
-        for i, sl in enumerate(slices):
+        for sl in slices:
             if sl is None:
                 continue
+            sy, sx = sl
             min_y, max_y = sy.start, sy.stop
             min_x, max_x = sx.start, sx.stop
-            if (max_x - min_x) < 3 or (max_y - min_y) < 3:
+            if (max_x - min_x) < 20 or (max_y - min_y) < 20:
                 continue
             pts = np.array([
                 [min_x, min_y],
